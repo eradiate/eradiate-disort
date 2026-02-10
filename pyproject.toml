@@ -7,11 +7,10 @@ authors = [
   { name = "Vincent Leroy", email = "vincent.leroy@rayference.eu" }
 ]
 requires-python = ">=3.9,<3.13"
-dependencies = [
-  "nanodisort",
-  "xarray",
-  "eradiate[kernel]==1.0.*"
-]
+dependencies = ["nanodisort", "xarray", "eradiate[kernel]==1.0.*", "networkx"]
+
+[project.optional-dependencies]
+visualization = ["pydot"]
 
 [dependency-groups]
 test = [
@@ -20,7 +19,9 @@ test = [
 dev = [
   "ipykernel",
   "ipywidgets",
+  "jupyterlab",
   "ruff>=0.14.9",
+  "pydot",
   { include-group = "test" },
 ]
 
