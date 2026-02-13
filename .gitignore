@@ -9,3 +9,8 @@ wheels/
 # Virtual environments
 .venv
 .idea/
+
+# The rest
+.DS_Store
+.ipynb_checkpoints/
+docs/_build
