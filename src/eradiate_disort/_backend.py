@@ -10,8 +10,11 @@ import numpy as np
 import tqdm.auto as tqdm
 import xarray as xr
 from eradiate import KernelContext
+from eradiate.exceptions import UnsupportedModeError
 from eradiate.experiments import AtmosphereExperiment
 from eradiate.units import unit_registry as ureg
+
+from .io import normalize_metadata
 
 logger = logging.getLogger(__name__)
 
@@ -185,8 +188,6 @@ class EradiateDisortBackend:
         exp: AtmosphereExperiment,
         measure: None | int | str = None,
     ) -> xr.DataArray:
-        from eradiate.pipelines import logic as pplogic
-
         mode = eradiate.get_mode()
 
         if measure is None:
@@ -194,6 +195,75 @@ class EradiateDisortBackend:
         else:
             measure = exp.measures.resolve(measure)
         measure_idx = exp.measures.get_index(measure.id)
+
+        if mode.is_mono:
+            return self.postprocess_mono(exp, measure_idx)
+        elif mode.is_ckd:
+            return self.postprocess_ckd(exp, measure_idx)
+        else:
+            raise UnsupportedModeError
+
+    def postprocess_mono(
+        self,
+        exp: AtmosphereExperiment,
+        measure_idx: int,
+    ) -> xr.DataArray:
+        results = self._results
+        w_coords = np.sort(np.unique(list(results.keys())))
+
+        value_shape = next(iter(results.values())).shape
+        dense_shape = (len(w_coords),) + value_shape
+        dense_data = np.full(dense_shape, np.nan)
+
+        w_idx = {x: i for i, x in enumerate(w_coords)}
+
+        keys = list(results.keys())
+        i_indices = np.array([w_idx[k] for k in keys])
+        values = np.array(list(results.values()))
+
+        dense_data[i_indices] = values
+
+        # Basic data assembly
+        mes_mu = self._state.umu
+        mes_theta = np.rad2deg(np.arccos(mes_mu))
+        mes_phi = self._state.phi
+        mes_tau = self._state.utau
+        vza, vaa = np.meshgrid(mes_theta, mes_phi, indexing="ij")
+
+        result = xr.DataArray(
+            dense_data,
+            coords={
+                "w": ("w", w_coords),
+                "y_index": ("y_index", np.arange(len(mes_theta))),
+                "tau": ("tau", mes_tau),
+                "x_index": ("x_index", np.arange(len(mes_phi))),
+                "vza": (("y_index", "x_index"), vza),
+                "vaa": (("y_index", "x_index"), vaa),
+            },
+            dims=["w", "y_index", "tau", "x_index"],
+            name="radiance_raw",
+        )
+
+        # Drop unused taus, add solar angles
+        ill_mu = self._state.umu0
+        ill_theta = np.rad2deg(np.arccos(ill_mu))
+        ill_phi = self._state.phi0
+
+        result = result.sel(tau=0, drop=True)  # tau = 0 ⇐⇒ TOA
+        result = result.expand_dims(("saa", "sza"), axis=(-2, -1)).assign_coords(
+            {"saa": ("saa", [ill_phi]), "sza": [ill_theta]}
+        )
+
+        # Apply metadata
+        result = normalize_metadata(result)
+        return result
+
+    def postprocess_ckd(
+        self,
+        exp: AtmosphereExperiment,
+        measure_idx: int,
+    ) -> xr.DataArray:
+        from eradiate.pipelines import logic as pplogic
 
         results = self._results
         w_coords = np.sort(np.unique(list(k[0] for k in results.keys())))
@@ -253,14 +323,13 @@ class EradiateDisortBackend:
         spectral_grid = exp.spectral_grids[measure_idx]
         ckd_quads = exp.ckd_quads[measure_idx]
 
-        if mode.is_ckd:
-            result = pplogic.aggregate_ckd_quad(
-                raw_data=result,
-                mode_id="ckd",
-                spectral_grid=spectral_grid,
-                ckd_quads=ckd_quads,
-                is_variance=False,
-            )
+        result = pplogic.aggregate_ckd_quad(
+            raw_data=result,
+            mode_id="ckd",
+            spectral_grid=spectral_grid,
+            ckd_quads=ckd_quads,
+            is_variance=False,
+        )
 
         return result
 
