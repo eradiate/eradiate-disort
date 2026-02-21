@@ -5,10 +5,7 @@ description = "Add your description here"
 readme = "README.md"
 authors = [{ name = "Vincent Leroy", email = "vincent.leroy@rayference.eu" }]
 requires-python = ">=3.9,<3.13"
-dependencies = ["nanodisort", "xarray", "eradiate[kernel]==1.0.*", "networkx"]
-
-[project.optional-dependencies]
-visualization = ["pydot"]
+dependencies = ["nanodisort", "xarray", "eradiate[kernel]==1.0.*"]
 
 [dependency-groups]
 test = ["pytest>=8.4"]
@@ -26,7 +23,6 @@ dev = [
   "ipykernel",
   "ipywidgets",
   "jupyterlab",
-  "pydot",
   "ruff>=0.14.9",
   "taskipy",
   { include-group = "test" },
@@ -47,7 +43,7 @@ docs-serve = { cmd = "sphinx-autobuild docs docs/_build/html", cwd = "." }
 docs-lock = { cmd = "uv export --frozen --no-hashes --output-file=docs/requirements.txt", cwd = "." }
 
 [tool.pytest.ini_options]
-min_version = "8.4"
+minversion = "8.4"
 testpaths = ["tests"]
 
 [tool.uv.sources]

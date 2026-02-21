@@ -16,7 +16,7 @@ CDISORT.
     :padding: 0
 
     .. grid-item-card:: :iconify:`material-symbols:book-2 height=1.5em` Docs
-        :link: user_guide/pipeline_engine
+        :link: user_guide/index
         :link-type: doc
 
         Read the user guide and design notes.
@@ -37,7 +37,7 @@ CDISORT.
     :hidden:
     :caption: User Guide
 
-    user_guide/pipeline_engine
+    user_guide/index
 
 .. toctree::
     :maxdepth: 2
@@ -45,11 +45,3 @@ CDISORT.
     :caption: API Reference
 
     api/eradiate_disort
-    api/eradiate_disort.pipelines
-
-.. toctree::
-    :maxdepth: 2
-    :hidden:
-    :caption: Design
-
-    design/pipeline_engine
