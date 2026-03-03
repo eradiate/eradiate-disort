@@ -116,8 +116,8 @@ class EradiateDisortBackend:
         if atmosphere is not None:
             h = atmosphere.geometry.zgrid.layer_height
             sigma_t = atmosphere.eval_sigma_t(ctx.si)
-            tau = (sigma_t * h).m_as("dimensionless")
-            ssalb = atmosphere.eval_albedo(ctx.si).m_as("dimensionless")
+            tau = np.atleast_1d((sigma_t * h).m_as("dimensionless"))
+            ssalb = np.atleast_1d(atmosphere.eval_albedo(ctx.si).m_as("dimensionless"))
             ds.dtauc = tau
             ds.ssalb = ssalb
         else:
@@ -132,8 +132,8 @@ class EradiateDisortBackend:
 
         # Set beam parameters
         irradiance = exp.illumination.irradiance.eval(ctx.si).m_as("W/m^2/nm")
-        ds.fbeam = irradiance  # Incident beam flux TODO check value correctness,
-        # check if cos is needed
+        ds.fbeam = irradiance  # Incident beam flux
+        # TODO: check value correctness, check if cos is needed
 
         # Bottom boundary albedo
         albedo = exp.surface.bsdf.reflectance.eval(ctx.si).m_as("dimensionless")
@@ -144,8 +144,7 @@ class EradiateDisortBackend:
         ds.fluor = 0.0  # No bottom illumination
 
         # Output optical depths (boundaries)
-        # TODO: Discuss interface
-        ds.utau = np.array([0.0, np.sum(tau)])
+        ds.utau = np.array([0, np.sum(tau)])
 
     def _solve(self):
         """Run the DISORT solver."""
@@ -153,9 +152,7 @@ class EradiateDisortBackend:
         self._state.solve()
 
     def process(
-        self,
-        exp: AtmosphereExperiment,
-        measure: None | int | str = None,
+        self, exp: AtmosphereExperiment, measure: None | int | str = None
     ) -> None:
         # Normalize list of processed measures
         if measure is None:
@@ -184,9 +181,7 @@ class EradiateDisortBackend:
         self._results = results
 
     def postprocess(
-        self,
-        exp: AtmosphereExperiment,
-        measure: None | int | str = None,
+        self, exp: AtmosphereExperiment, measure: None | int | str = None
     ) -> xr.DataArray:
         mode = eradiate.get_mode()
 
@@ -197,16 +192,16 @@ class EradiateDisortBackend:
         measure_idx = exp.measures.get_index(measure.id)
 
         if mode.is_mono:
-            return self.postprocess_mono(exp, measure_idx)
+            result = self._postprocess_mono(exp, measure_idx)
         elif mode.is_ckd:
-            return self.postprocess_ckd(exp, measure_idx)
+            result = self._postprocess_ckd(exp, measure_idx)
         else:
             raise UnsupportedModeError
 
-    def postprocess_mono(
-        self,
-        exp: AtmosphereExperiment,
-        measure_idx: int,
+        return result
+
+    def _postprocess_mono(
+        self, exp: AtmosphereExperiment, measure_idx: int
     ) -> xr.DataArray:
         results = self._results
         w_coords = np.sort(np.unique(list(results.keys())))
@@ -249,7 +244,7 @@ class EradiateDisortBackend:
         ill_theta = np.rad2deg(np.arccos(ill_mu))
         ill_phi = self._state.phi0
 
-        result = result.sel(tau=0, drop=True)  # tau = 0 ⇐⇒ TOA
+        result = result.isel(tau=0, drop=True)  # tau = 0 means TOA
         result = result.expand_dims(("saa", "sza"), axis=(-2, -1)).assign_coords(
             {"saa": ("saa", [ill_phi]), "sza": [ill_theta]}
         )
@@ -258,10 +253,8 @@ class EradiateDisortBackend:
         result = normalize_metadata(result)
         return result
 
-    def postprocess_ckd(
-        self,
-        exp: AtmosphereExperiment,
-        measure_idx: int,
+    def _postprocess_ckd(
+        self, exp: AtmosphereExperiment, measure_idx: int
     ) -> xr.DataArray:
         from eradiate.pipelines import logic as pplogic
 
@@ -310,14 +303,13 @@ class EradiateDisortBackend:
         ill_theta = np.rad2deg(np.arccos(ill_mu))
         ill_phi = self._state.phi0
 
-        result = result.sel(tau=0, drop=True)  # tau = 0 ⇐⇒ TOA
+        result = result.isel(tau=0, drop=True)  # tau = 0 means TOA
         result = result.expand_dims(("saa", "sza"), axis=(-2, -1)).assign_coords(
             {"saa": ("saa", [ill_phi]), "sza": [ill_theta]}
         )
 
         # Apply metadata
         result = normalize_metadata(result)
-        # return result
 
         # Aggregate the CKD data
         spectral_grid = exp.spectral_grids[measure_idx]
@@ -334,9 +326,7 @@ class EradiateDisortBackend:
         return result
 
     def run(
-        self,
-        exp: AtmosphereExperiment,
-        measure: None | int | str = None,
+        self, exp: AtmosphereExperiment, measure: None | int | str = None
     ) -> xr.DataArray:
         self.process(exp, measure=measure)
         return self.postprocess(exp, measure=measure)

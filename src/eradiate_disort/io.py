@@ -29,7 +29,7 @@ _METADATA: dict[str, dict] = {
 
 
 def normalize_metadata(
-    da: xr.DataArray, vars: Sequence[str] | None = None, inplace=True
+    da: xr.DataArray, vars: Sequence[str] | None = None, inplace: bool = True
 ) -> xr.DataArray:
     """
     Update a DataArray's metadata with normalized values.
