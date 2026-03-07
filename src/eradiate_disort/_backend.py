@@ -12,7 +12,9 @@ import xarray as xr
 from eradiate import KernelContext
 from eradiate.exceptions import UnsupportedModeError
 from eradiate.experiments import AtmosphereExperiment
+from eradiate.scenes.phase import IsotropicPhaseFunction, RayleighPhaseFunction
 from eradiate.units import unit_registry as ureg
+from nanodisort.utils import phase_functions as pf
 
 from .io import normalize_metadata
 
@@ -125,10 +127,19 @@ class EradiateDisortBackend:
             ds.dtauc = tau
             ds.ssalb = tau
 
-        # Isotropic phase function (all moments = 0 except first)
-        pmom = np.zeros((ds.nmom + 1, ds.nlyr))
-        pmom[0, 0] = 1.0  # Normalization
-        ds.pmom = pmom
+        # Phase function moments
+        phase = atmosphere.phase if atmosphere is not None else None
+
+        if phase is None or isinstance(phase, IsotropicPhaseFunction):
+            pmom_1d = pf.isotropic(ds.nmom)
+        elif isinstance(phase, RayleighPhaseFunction):
+            pmom_1d = pf.rayleigh(ds.nmom)
+        else:
+            raise NotImplementedError(
+                f"Phase function type {type(phase).__name__!r} is not supported by "
+                "EradiateDisortBackend"
+            )
+        ds.pmom = np.tile(pmom_1d.reshape(-1, 1), (1, ds.nlyr))
 
         # Set beam parameters
         irradiance = exp.illumination.irradiance.eval(ctx.si).m_as("W/m^2/nm")
