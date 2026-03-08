@@ -127,7 +127,7 @@ class EradiateDisortBackend:
             ds.dtauc = tau
             ds.ssalb = tau
 
-        # Phase function moments
+        # Phase function setup
         phase = atmosphere.phase if atmosphere is not None else None
 
         if phase is None or isinstance(phase, IsotropicPhaseFunction):
@@ -139,9 +139,10 @@ class EradiateDisortBackend:
                 f"Phase function type {type(phase).__name__!r} is not supported by "
                 "EradiateDisortBackend"
             )
+
         ds.pmom = np.tile(pmom_1d.reshape(-1, 1), (1, ds.nlyr))
 
-        # Set beam parameters
+        # Illumination setup
         irradiance = exp.illumination.irradiance.eval(ctx.si).m_as("W/m^2/nm")
         ds.fbeam = irradiance  # Incident beam flux
         # TODO: check value correctness, check if cos is needed
