@@ -18,6 +18,7 @@ docs = [
   "sphinx-design",
   "sphinx-iconify",
 ]
+lint = ["ruff", "ty"]
 dev = [
   "eradiate[recommended]",
   "ipykernel",
