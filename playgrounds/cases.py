@@ -34,6 +34,7 @@ def single_layer(sza: float = 0.0, phase: str = "isotropic"):
         geometry={
             "type": "plane_parallel",
             "toa_altitude": 1.0 * ureg.km,
+            "zgrid": np.linspace(0, 1, 2) * ureg.km,
         },
         surface={"type": "lambertian", "reflectance": 0.0},
         atmosphere={"type": "homogeneous", "phase": {"type": phase}},

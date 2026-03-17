@@ -9,7 +9,7 @@ import nanodisort as nd
 import numpy as np
 import tqdm.auto as tqdm
 import xarray as xr
-from eradiate import KernelContext
+from eradiate import KernelContext, config
 from eradiate.exceptions import UnsupportedModeError
 from eradiate.experiments import AtmosphereExperiment
 from eradiate.scenes.phase import IsotropicPhaseFunction, RayleighPhaseFunction
@@ -39,6 +39,7 @@ class EradiateDisortBackend:
     verbose: bool = attrs.field(default=False, repr=False)
     _state: nd.DisortState = attrs.field(factory=nd.DisortState, repr=False)
     _results: dict[Hashable, xr.DataArray] = attrs.field(factory=dict, repr=False)
+    _name: str = "CDISORT"
 
     def validate(self, exp: AtmosphereExperiment):
         """
@@ -120,8 +121,8 @@ class EradiateDisortBackend:
             sigma_t = atmosphere.eval_sigma_t(ctx.si)
             tau = np.atleast_1d((sigma_t * h).m_as("dimensionless"))
             ssalb = np.atleast_1d(atmosphere.eval_albedo(ctx.si).m_as("dimensionless"))
-            ds.dtauc = tau
-            ds.ssalb = ssalb
+            ds.dtauc = tau[::-1]
+            ds.ssalb = ssalb[::-1]
         else:
             tau = np.array([0])
             ds.dtauc = tau
@@ -145,7 +146,6 @@ class EradiateDisortBackend:
         # Illumination setup
         irradiance = exp.illumination.irradiance.eval(ctx.si).m_as("W/m^2/nm")
         ds.fbeam = irradiance  # Incident beam flux
-        # TODO: check value correctness, check if cos is needed
 
         # Bottom boundary albedo
         albedo = exp.surface.bsdf.reflectance.eval(ctx.si).m_as("dimensionless")
@@ -181,9 +181,19 @@ class EradiateDisortBackend:
 
         # Run the spectral loop
         results = {}
-        with tqdm.tqdm(desc="Spectral loop", total=len(ctxs)) as pbar:
+        with tqdm.tqdm(
+            initial=0,
+            total=len(ctxs),
+            unit_scale=1.0,
+            leave=True,
+            bar_format="{desc}{n:g}/{total:g}|{bar}| {elapsed}, ETA={remaining}",
+            disable=(config.settings.progress < config.ProgressLevel.SPECTRAL_LOOP)
+            or len(ctxs) <= 1,
+        ) as pbar:
             for ctx in ctxs:
-                pbar.set_description(ctx.index_formatted)
+                pbar.set_description(
+                    f"Spectral loop — {self._name} [{ctx.index_formatted}]"
+                )
                 self._setup_spectral(exp, ctx)
                 self._solve()
                 results[ctx.si.as_hashable] = np.array(self._state.uu)
