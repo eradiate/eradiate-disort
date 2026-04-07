@@ -15,5 +15,5 @@ TBD
 
 ## Licensing
 
-Consistent with the nanodisort package, which this software links to, this 
+Consistent with the nanodisort package, which this software links to, this
 project is licensed under the terms of the GNU General Public License (GPLv3).
