@@ -12,7 +12,11 @@ import xarray as xr
 from eradiate import KernelContext, config
 from eradiate.exceptions import UnsupportedModeError
 from eradiate.experiments import AtmosphereExperiment
-from eradiate.scenes.phase import IsotropicPhaseFunction, RayleighPhaseFunction
+from eradiate.scenes.phase import (
+    IsotropicPhaseFunction,
+    ParticlePhaseFunction,
+    RayleighPhaseFunction,
+)
 from eradiate.units import unit_registry as ureg
 from nanodisort.utils import phase_functions as pf
 
@@ -135,6 +139,8 @@ class EradiateDisortBackend:
             pmom_1d = pf.isotropic(ds.nmom)
         elif isinstance(phase, RayleighPhaseFunction):
             pmom_1d = pf.rayleigh(ds.nmom)
+        elif isinstance(phase, ParticlePhaseFunction):
+            pmom_1d = phase.eval_pmom(ctx.si, phamat=0)
         else:
             raise NotImplementedError(
                 f"Phase function type {type(phase).__name__!r} is not supported by "
