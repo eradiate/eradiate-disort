@@ -33,6 +33,7 @@ sphinx-iconify = "*"
 
 [feature.dev.pypi-dependencies]
 eradiate = { path = "ext/eradiate", editable = true, extras = ["recommended"] }
+seaborn = "*"
 
 [tasks]
 docs = { cmd = "sphinx-build -b html docs docs/_build/html", cwd = "." }
