@@ -83,6 +83,14 @@ class EradiateDisortBackend:
         ds.onlyfl = False  # Return intensity in addition to fluxes
         ds.planck = False  # No thermal emission
 
+        # Enable Nakajima-Tanaka intensity correction. The newer Buras-Emde
+        # correction (old_intensity_correction=False) also requires ds.nphase,
+        # ds.mu_phase, and ds.phase to be populated with the actual phase
+        # function; since we only provide Legendre moments, it would segfault.
+        ds.intensity_correction = True
+        ds.old_intensity_correction = True
+        # TODO: Enable new intensity correction method as well
+
         # Set dimensions
         ds.nlyr = (
             exp.atmosphere.geometry.zgrid.n_layers if exp.atmosphere is not None else 1
@@ -140,7 +148,18 @@ class EradiateDisortBackend:
         elif isinstance(phase, RayleighPhaseFunction):
             pmom_1d = pf.rayleigh(ds.nmom)
         elif isinstance(phase, ParticlePhaseFunction):
-            pmom_1d = phase.eval_pmom(ctx.si, phamat=0)
+            pmom_raw = phase.eval_pmom(ctx.si, phamat=0)
+            # The particle data stores (2l+1)*f_l; DISORT expects f_l directly.
+            # Divide by (2l+1) to convert to DISORT convention.
+            factors = 2 * np.arange(len(pmom_raw)) + 1
+            pmom_raw = pmom_raw / factors
+            # Truncate or zero-pad to nmom+1 to match DISORT's expected shape
+            n = ds.nmom + 1
+            if len(pmom_raw) >= n:
+                pmom_1d = pmom_raw[:n]
+            else:
+                pmom_1d = np.zeros(n)
+                pmom_1d[: len(pmom_raw)] = pmom_raw
         else:
             raise NotImplementedError(
                 f"Phase function type {type(phase).__name__!r} is not supported by "
