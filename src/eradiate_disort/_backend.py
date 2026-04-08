@@ -49,6 +49,12 @@ class EradiateDisortBackend:
         """
         Check consistency between self parameters and experiment configuration.
         """
+        # TODO:
+        # - Illumination: only directional
+        # - Measure: only TOA (extend later to DISORT backend-specific measures)
+        # - Integrator: ignore
+        # - Surface: only diffuse
+        # - Atmosphere: only molecular or particle layer (extend ASAP to multi-component)
         pass
 
     def _setup_global(self, exp: AtmosphereExperiment) -> None:
