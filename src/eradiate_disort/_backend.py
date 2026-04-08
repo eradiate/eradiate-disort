@@ -12,13 +12,9 @@ import xarray as xr
 from eradiate import KernelContext, config
 from eradiate.exceptions import UnsupportedModeError
 from eradiate.experiments import AtmosphereExperiment
-from eradiate.scenes.phase import (
-    IsotropicPhaseFunction,
-    ParticlePhaseFunction,
-    RayleighPhaseFunction,
-)
 from eradiate.units import unit_registry as ureg
-from nanodisort.utils import phase_functions as pf
+
+from eradiate_disort._pmom import get_pmom
 
 from .io import normalize_metadata
 
@@ -98,9 +94,7 @@ class EradiateDisortBackend:
         # TODO: Enable new intensity correction method as well
 
         # Set dimensions
-        ds.nlyr = (
-            exp.atmosphere.geometry.zgrid.n_layers if exp.atmosphere is not None else 1
-        )
+        ds.nlyr = exp.atmosphere.geometry.zgrid.n_layers if exp.atmosphere else 1
         ds.nstr = self.nstr  # Number of streams
         ds.nmom = self.nmom  # Phase function moments
 
@@ -146,33 +140,8 @@ class EradiateDisortBackend:
             ds.dtauc = tau
             ds.ssalb = tau
 
-        # Phase function setup
-        phase = atmosphere.phase if atmosphere is not None else None
-
-        if phase is None or isinstance(phase, IsotropicPhaseFunction):
-            pmom_1d = pf.isotropic(ds.nmom)
-        elif isinstance(phase, RayleighPhaseFunction):
-            pmom_1d = pf.rayleigh(ds.nmom)
-        elif isinstance(phase, ParticlePhaseFunction):
-            pmom_raw = phase.eval_pmom(ctx.si, phamat=0)
-            # The particle data stores (2l+1)*f_l; DISORT expects f_l directly.
-            # Divide by (2l+1) to convert to DISORT convention.
-            factors = 2 * np.arange(len(pmom_raw)) + 1
-            pmom_raw = pmom_raw / factors
-            # Truncate or zero-pad to nmom+1 to match DISORT's expected shape
-            n = ds.nmom + 1
-            if len(pmom_raw) >= n:
-                pmom_1d = pmom_raw[:n]
-            else:
-                pmom_1d = np.zeros(n)
-                pmom_1d[: len(pmom_raw)] = pmom_raw
-        else:
-            raise NotImplementedError(
-                f"Phase function type {type(phase).__name__!r} is not supported by "
-                "EradiateDisortBackend"
-            )
-
-        ds.pmom = np.tile(pmom_1d.reshape(-1, 1), (1, ds.nlyr))
+        # Phase function setup — returns (nmom+1, n_layers), top-to-bottom
+        ds.pmom = get_pmom(atmosphere, ds.nmom, ctx)[:, ::-1]
 
         # Illumination setup
         irradiance = exp.illumination.irradiance.eval(ctx.si).m_as("W/m^2/nm")
