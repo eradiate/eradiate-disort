@@ -153,3 +153,34 @@ def molecular(
             "srf": {"type": "delta", "wavelengths": [550.0]},
         },
     )
+
+
+def aerosols(
+    sza: float = 30.0,
+    has_scattering: bool = True,
+    has_absorption: bool = True,
+    surface_reflectance: float = 0.0,
+):
+    return AtmosphereExperiment(
+        geometry={
+            "type": "plane_parallel",
+            "toa_altitude": 100.0 * ureg.km,
+            "zgrid": np.linspace(0, 100, 101) * ureg.km,
+        },
+        surface={"type": "lambertian", "reflectance": surface_reflectance},
+        atmosphere={
+            "type": "particle_layer",
+            "has_scattering": has_scattering,
+            "has_absorption": has_absorption,
+            "tau_ref": 0.5,
+            "particle_properties": "soot.mie-aer_core_v2",
+        },
+        illumination={"type": "directional", "zenith": sza, "azimuth": 0.0},
+        measures={
+            "type": "mdistant",
+            "construct": "hplane",
+            "azimuth": 0.0,
+            "zeniths": np.arange(-75.0, 76.0, 1.0),
+            "srf": {"type": "delta", "wavelengths": [550.0]},
+        },
+    )
