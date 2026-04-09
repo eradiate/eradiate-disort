@@ -12,6 +12,10 @@ import xarray as xr
 from eradiate import KernelContext, config
 from eradiate.exceptions import UnsupportedModeError
 from eradiate.experiments import AtmosphereExperiment
+from eradiate.scenes.atmosphere import MolecularAtmosphere, ParticleLayer
+from eradiate.scenes.bsdfs import LambertianBSDF
+from eradiate.scenes.illumination import DirectionalIllumination
+from eradiate.scenes.measure import MultiDistantMeasure
 from eradiate.units import unit_registry as ureg
 
 from ._pmom import get_pmom
@@ -22,6 +26,28 @@ logger = logging.getLogger(__name__)
 
 @attrs.define
 class EradiateDisortBackend:
+    """
+    Eradiate DISORT backend.
+
+    This class implements an experimental Eradiate radiometric backend that uses
+    the CDISORT implementation of the DISORT algorithm. It supports 1D scenes
+    with atmospheres featuring an arbitrary number of components and can
+    generally be used as a fast alternative to the Monte Carlo ray tracing
+    backend on plane-parallel geometries.
+
+    Parameters
+    ----------
+    nstr : int, default: 16
+        Number of streams (angular discretization).
+
+    nmom : int, default: 16
+        Number of Legendre moments used to represent scattering distributions
+        (phase functions and BRDFs).
+
+    verbose : bool, default: False
+        If ``False``, silence CDISORT terminal output.
+    """
+
     # This is a prototype interface for a more general Backend class. Backends
     # are responsible for checking their input (both internal state and
     # additional parameters provided by an Experiment object) through the
@@ -42,15 +68,52 @@ class EradiateDisortBackend:
 
     def validate(self, exp: AtmosphereExperiment):
         """
-        Check consistency between self parameters and experiment configuration.
+        Check internal state consistency and compatibility with the passed
+        Experiment configuration.
+
+        Parameters
+        ----------
+        exp : AtmosphereExperiment
+            Processed experiment configuration.
+
+        Raises
+        ------
+        TypeError
+            If validation fails.
         """
-        # TODO:
-        # - Illumination: only directional
-        # - Measure: only TOA (extend later to DISORT backend-specific measures)
-        # - Integrator: ignore
-        # - Surface: only diffuse
-        # - Atmosphere: only molecular or particle layer (extend ASAP to multi-component)
-        pass
+        # TODO: Improve raised exception classification (rely on pydantic in the future?)
+
+        # Illumination: only directional illumination is supported
+        if not isinstance(exp.illumination, DirectionalIllumination):
+            raise TypeError(
+                f"EradiateDisortBackend requires a DirectionalIllumination, "
+                f"got {type(exp.illumination).__name__}"
+            )
+
+        # Measure: only MultiDistantMeasure (TOA) is supported
+        for measure in exp.measures:
+            if not isinstance(measure, MultiDistantMeasure):
+                raise TypeError(
+                    f"EradiateDisortBackend requires MultiDistantMeasure instances, "
+                    f"got {type(measure).__name__}"
+                )
+
+        # Surface: only Lambertian (diffuse) BSDF is supported
+        if not isinstance(exp.surface.bsdf, LambertianBSDF):
+            raise TypeError(
+                f"EradiateDisortBackend requires a Lambertian surface BSDF, "
+                f"got {type(exp.surface.bsdf).__name__}"
+            )
+
+        # Atmosphere: only heterogeneous atmospheres are supported
+        if exp.atmosphere is not None and not isinstance(
+            exp.atmosphere,
+            (MolecularAtmosphere, ParticleLayer, HeterogeneousAtmosphere),
+        ):
+            raise TypeError(
+                f"EradiateDisortBackend requires a MolecularAtmosphere or ParticleLayer, "
+                f"got {type(exp.atmosphere).__name__}"
+            )
 
     def _setup_global(self, exp: AtmosphereExperiment) -> None:
         """
@@ -173,6 +236,27 @@ class EradiateDisortBackend:
     def process(
         self, exp: AtmosphereExperiment, measure: None | int | str = None
     ) -> None:
+        """
+        Run the processing step for a given Experiment configuration.
+
+        This method executes the processing step of the backend of a given
+        Experiment configuration and measure identifier. The processing step
+        consists in successive iterations of the spectral loop, for which a
+        radiative transfer simulation run is performed. Results are stored in
+        the :attr:`._result` private property of the instance.
+
+        Parameters
+        ----------
+        exp : AtmosphereExperiment
+            Processed experiment configuration.
+
+        measure : int or str, optional
+            Index or string ID of the processed measure. If unset, defaults to
+            the first measure defined in the experiment configuration.
+        """
+        # Make sure that the processed Experiment is initialized
+        exp.init()
+
         # Normalize list of processed measures
         if measure is None:
             measure = exp.measures[0]
@@ -212,6 +296,29 @@ class EradiateDisortBackend:
     def postprocess(
         self, exp: AtmosphereExperiment, measure: None | int | str = None
     ) -> xr.DataArray:
+        """
+        Run the postprocessing step for a given Experiment configuration.
+
+        This method executes the postprocessing step of the backend of a given
+        Experiment configuration and measure identifier. It assumes that the
+        :meth:`.process` method was successfully called before and uses the
+        stored results.
+
+        Parameters
+        ----------
+        exp : AtmosphereExperiment
+            Processed experiment configuration.
+
+        measure : int or str, optional
+            Index or string ID of the processed measure. If unset, defaults to
+            the first measure defined in the experiment configuration.
+
+        Returns
+        -------
+        DataArray
+            Post-processed results.
+        """
+
         mode = eradiate.get_mode()
 
         if measure is None:
@@ -357,5 +464,25 @@ class EradiateDisortBackend:
     def run(
         self, exp: AtmosphereExperiment, measure: None | int | str = None
     ) -> xr.DataArray:
+        """
+        Run the backend for a given Experiment configuration.
+
+        This high-level function runs in a sequence the validation, processing and
+
+        Parameters
+        ----------
+        exp : AtmosphereExperiment
+            Processed experiment configuration.
+
+        measure : int or str, optional
+            Index or string ID of the processed measure. If unset, defaults to
+            the first measure defined in the experiment configuration.
+
+        Returns
+        -------
+        DataArray
+            Post-processed results.
+        """
+        self.validate(exp)
         self.process(exp, measure=measure)
         return self.postprocess(exp, measure=measure)
