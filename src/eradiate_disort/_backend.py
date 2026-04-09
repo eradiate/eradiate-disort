@@ -14,8 +14,7 @@ from eradiate.exceptions import UnsupportedModeError
 from eradiate.experiments import AtmosphereExperiment
 from eradiate.units import unit_registry as ureg
 
-from eradiate_disort._pmom import get_pmom
-
+from ._pmom import get_pmom
 from .io import normalize_metadata
 
 logger = logging.getLogger(__name__)
@@ -133,6 +132,14 @@ class EradiateDisortBackend:
             sigma_t = atmosphere.eval_sigma_t(ctx.si)
             tau = np.atleast_1d((sigma_t * h).m_as("dimensionless"))
             ssalb = np.atleast_1d(atmosphere.eval_albedo(ctx.si).m_as("dimensionless"))
+
+            # CDISORT handles ssalb == 1.0 exactly by replacing with 1 - dither
+            # (dither = 100 * DBL_EPSILON ≈ 2.2e-14). Values in (1-dither, 1) are
+            # not caught by that check but are close enough to 1 to cause NaN in
+            # internal arithmetic. Clip all ssalb to 1 - dither to be safe.
+            _dither = 100.0 * np.finfo(float).eps
+            ssalb = np.minimum(ssalb, 1.0 - _dither)
+
             ds.dtauc = tau[::-1]
             ds.ssalb = ssalb[::-1]
         else:
