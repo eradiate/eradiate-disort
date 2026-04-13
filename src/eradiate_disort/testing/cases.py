@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Rayference
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 import numpy as np
 import xarray as xr
 from eradiate.experiments import AtmosphereExperiment
