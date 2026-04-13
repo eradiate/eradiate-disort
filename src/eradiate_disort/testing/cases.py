@@ -184,3 +184,40 @@ def aerosols(
             "srf": {"type": "delta", "wavelengths": [550.0]},
         },
     )
+
+
+def full_atmo(
+    sza: float = 30.0,
+    has_scattering: bool = True,
+    has_absorption: bool = True,
+    surface_reflectance: float = 0.0,
+):
+    return AtmosphereExperiment(
+        geometry={
+            "type": "plane_parallel",
+            "toa_altitude": 100.0 * ureg.km,
+            "zgrid": np.linspace(0, 100, 101) * ureg.km,
+        },
+        surface={"type": "lambertian", "reflectance": surface_reflectance},
+        atmosphere={
+            "type": "heterogeneous",
+            "molecular_atmosphere": {
+                "has_scattering": has_scattering,
+                "has_absorption": has_absorption,
+            },
+            "particle_layers": {
+                "has_scattering": has_scattering,
+                "has_absorption": has_absorption,
+                "tau_ref": 0.2,
+                "particle_properties": "soot.mie-aer_core_v2",
+            },
+        },
+        illumination={"type": "directional", "zenith": sza, "azimuth": 0.0},
+        measures={
+            "type": "mdistant",
+            "construct": "hplane",
+            "azimuth": 0.0,
+            "zeniths": np.arange(-75.0, 76.0, 1.0),
+            "srf": {"type": "delta", "wavelengths": [550.0]},
+        },
+    )

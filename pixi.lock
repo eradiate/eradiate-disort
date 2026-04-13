@@ -1342,9 +1342,9 @@ packages:
 - pypi: ./
   name: eradiate-disort
   version: 0.1.0
-  sha256: 6fa30f47f0bf57b4f7eee53cecf012a97a46e40ff2a517b57cbe6d6bad8a0591
+  sha256: f9a65df74a1b771ae70321883b9323ae35fa2c2489507eec16b6825025fe2700
   requires_dist:
-  - nanodisort
+  - nanodisort>=0.1.0,<0.2.0
   - xarray
   - eradiate
   requires_python: '>=3.9,<3.14'
@@ -2627,10 +2627,10 @@ packages:
 - pypi: ./ext/nanodisort
   name: nanodisort
   version: 0.1.0
-  sha256: c67aabad5d67e68f7f60b7243205027b7765622481c5094e7f9f5018b90ed89c
+  sha256: 9955208435e5e6f9bc987c7b57986b4ba308fec0378b4ff665b17ac434c4b36b
   requires_dist:
   - numpy>=1.20
-  requires_python: '>=3.9'
+  requires_python: '>=3.9,<3.14'
 - pypi: https://files.pythonhosted.org/packages/83/a0/5b0c2f11142ed1dddec842457d3f65eaf71a0080894eb6f018755b319c3a/nbclient-0.10.4-py3-none-any.whl
   name: nbclient
   version: 0.10.4

@@ -12,7 +12,12 @@ import xarray as xr
 from eradiate import KernelContext, config
 from eradiate.exceptions import UnsupportedModeError
 from eradiate.experiments import AtmosphereExperiment
-from eradiate.scenes.atmosphere import MolecularAtmosphere, ParticleLayer
+from eradiate.scenes.atmosphere import (
+    HeterogeneousAtmosphere,
+    HomogeneousAtmosphere,
+    MolecularAtmosphere,
+    ParticleLayer,
+)
 from eradiate.scenes.bsdfs import LambertianBSDF
 from eradiate.scenes.illumination import DirectionalIllumination
 from eradiate.scenes.measure import MultiDistantMeasure
@@ -106,12 +111,16 @@ class EradiateDisortBackend:
             )
 
         # Atmosphere: only heterogeneous atmospheres are supported
-        if exp.atmosphere is not None and not isinstance(
-            exp.atmosphere,
-            (MolecularAtmosphere, ParticleLayer, HeterogeneousAtmosphere),
-        ):
+        allowed = (
+            MolecularAtmosphere,
+            ParticleLayer,
+            HeterogeneousAtmosphere,
+            HomogeneousAtmosphere,
+        )
+        if exp.atmosphere is not None and not isinstance(exp.atmosphere, allowed):
             raise TypeError(
-                f"EradiateDisortBackend requires a MolecularAtmosphere or ParticleLayer, "
+                "EradiateDisortBackend requires one of "
+                f"[{', '.join([f'{x.__name__}' for x in allowed])}], "
                 f"got {type(exp.atmosphere).__name__}"
             )
 
