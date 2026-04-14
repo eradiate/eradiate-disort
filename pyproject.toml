@@ -5,7 +5,7 @@ description = "Add your description here"
 readme = "README.md"
 authors = [{ name = "Vincent Leroy", email = "vincent.leroy@rayference.eu" }]
 requires-python = ">=3.9,<3.14"
-dependencies = ["nanodisort>=0.1.0,<0.2.0", "xarray", "eradiate"]
+dependencies = ["nanodisort==0.2.0.dev1", "xarray", "eradiate"]
 
 [dependency-groups]
 test = ["pytest>=8.4"]

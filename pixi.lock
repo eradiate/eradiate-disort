@@ -1342,9 +1342,9 @@ packages:
 - pypi: ./
   name: eradiate-disort
   version: 0.1.0
-  sha256: f9a65df74a1b771ae70321883b9323ae35fa2c2489507eec16b6825025fe2700
+  sha256: ba8af6a6fbb253c9c69c183e37848ae75fbd3f10a758b6a05f9dfadc1d9abc17
   requires_dist:
-  - nanodisort>=0.1.0,<0.2.0
+  - nanodisort==0.2.0.dev1
   - xarray
   - eradiate
   requires_python: '>=3.9,<3.14'
@@ -2626,8 +2626,8 @@ packages:
   requires_python: '>=3.8'
 - pypi: ./ext/nanodisort
   name: nanodisort
-  version: 0.1.0
-  sha256: 9955208435e5e6f9bc987c7b57986b4ba308fec0378b4ff665b17ac434c4b36b
+  version: 0.2.0.dev1
+  sha256: 26dcb79e10b18f75309cc03b89b13362c5290fe75fe81016b5161e17c06dc63a
   requires_dist:
   - numpy>=1.20
   requires_python: '>=3.9,<3.14'

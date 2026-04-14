@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 """
-Functions to collect Legendre moments for various phase functions.
+Functions to collect Legendre moments and phase function data for DISORT.
 """
 
 from __future__ import annotations
@@ -134,3 +134,142 @@ def get_pmom(atmosphere, nmom: int, ctx: KernelContext) -> np.ndarray:
     n_layers = atmosphere.geometry.zgrid.n_layers
     pmom_1d = _get_pmom_phase(atmosphere.phase, nmom, ctx)
     return np.tile(pmom_1d.reshape(-1, 1), (1, n_layers))
+
+
+# ---------------------------------------------------------------------------
+# Phase function evaluation for Buras-Emde intensity correction
+# ---------------------------------------------------------------------------
+
+
+def _find_particle_phase_function(atmosphere) -> ParticlePhaseFunction | None:
+    """Return the first ParticlePhaseFunction found in the atmosphere, or None."""
+    if isinstance(atmosphere, HeterogeneousAtmosphere):
+        for comp in atmosphere.components:
+            if isinstance(comp.phase, ParticlePhaseFunction):
+                return comp.phase
+    elif isinstance(getattr(atmosphere, "phase", None), ParticlePhaseFunction):
+        return atmosphere.phase
+    return None
+
+
+def _eval_phase_1d(
+    phase: PhaseFunction | None, mu_grid: np.ndarray, ctx: KernelContext
+) -> np.ndarray:
+    """
+    Evaluate a single phase function at given cos(theta) values.
+
+    Parameters
+    ----------
+    phase : PhaseFunction or None
+        Phase function to evaluate. ``None`` and ``IsotropicPhaseFunction``
+        both yield 1.0 everywhere.
+    mu_grid : ndarray, shape (nphase,)
+        Cosines of scattering angles (must be sorted ascending).
+    ctx : KernelContext
+        Spectral context.
+
+    Returns
+    -------
+    ndarray, shape (nphase,)
+    """
+    if phase is None or isinstance(phase, IsotropicPhaseFunction):
+        return np.ones(len(mu_grid))
+    elif isinstance(phase, RayleighPhaseFunction):
+        return 0.75 * (1.0 + mu_grid**2)
+    elif isinstance(phase, ParticlePhaseFunction):
+        comp_mu = phase.eval_mu(ctx.si)
+        comp_p = phase.eval_phase(ctx.si, phamat=0)
+        return np.interp(mu_grid, comp_mu, comp_p)
+    else:
+        raise NotImplementedError(
+            f"Phase function {type(phase).__name__!r} is not supported by "
+            "the Buras-Emde correction"
+        )
+
+
+def _get_phase_blend(
+    atmosphere: HeterogeneousAtmosphere,
+    mu_grid: np.ndarray,
+    ctx: KernelContext,
+) -> np.ndarray:
+    """
+    Compute blended phase function array for a multi-component atmosphere.
+
+    Parameters
+    ----------
+    atmosphere : HeterogeneousAtmosphere
+    mu_grid : ndarray, shape (nphase,)
+        Common angle grid (ascending cosines).
+    ctx : KernelContext
+
+    Returns
+    -------
+    ndarray, shape (nlyr, nphase)
+        Phase function per layer, top-to-bottom order. Falls back to isotropic
+        (1.0) where total scattering is zero.
+    """
+    zgrid = atmosphere.geometry.zgrid
+    n_layers = zgrid.n_layers
+    nphase = len(mu_grid)
+    sigma_units = ucc.get("collision_coefficient")
+
+    phase_sum = np.zeros((n_layers, nphase))
+    sigma_s_sum = np.zeros(n_layers)
+
+    for comp in atmosphere.components:
+        sigma_s = comp.eval_sigma_s(ctx.si, zgrid).m_as(sigma_units)
+        p_1d = _eval_phase_1d(comp.phase, mu_grid, ctx)
+        phase_sum += sigma_s[:, np.newaxis] * p_1d[np.newaxis, :]
+        sigma_s_sum += sigma_s
+
+    result = np.ones((n_layers, nphase))
+    nonzero = sigma_s_sum > 0
+    result[nonzero] = phase_sum[nonzero] / sigma_s_sum[nonzero, np.newaxis]
+    return result
+
+
+def get_phase(
+    atmosphere, nstr: int, ctx: KernelContext
+) -> tuple[np.ndarray, np.ndarray]:
+    """
+    Collect phase function data for the Buras-Emde intensity correction.
+
+    The angle grid is taken from the native grid of the first
+    :class:`.ParticlePhaseFunction` found in the atmosphere (if any), or a
+    uniform grid of *nstr* points in [-1, 1] otherwise.
+
+    Parameters
+    ----------
+    atmosphere : Atmosphere or None
+        Atmosphere object. If ``None``, a single isotropic layer is returned.
+    nstr : int
+        Number of streams. Used to size the fallback uniform angle grid.
+    ctx : KernelContext
+        Spectral context.
+
+    Returns
+    -------
+    mu_grid : ndarray, shape (nphase,)
+        Scattering angle cosines in ascending order.
+    phase : ndarray, shape (nlyr, nphase)
+        Phase function values per layer in top-to-bottom layer order.
+    """
+    # Determine the reference angle grid
+    pf_particle = _find_particle_phase_function(atmosphere)
+    if pf_particle is not None:
+        mu_grid = np.sort(pf_particle.eval_mu(ctx.si))
+    else:
+        mu_grid = np.linspace(-1.0, 1.0, nstr)
+
+    if atmosphere is None:
+        return mu_grid, np.ones((1, len(mu_grid)))
+
+    if (
+        isinstance(atmosphere, HeterogeneousAtmosphere)
+        and len(atmosphere.components) > 1
+    ):
+        return mu_grid, _get_phase_blend(atmosphere, mu_grid, ctx)
+
+    n_layers = atmosphere.geometry.zgrid.n_layers
+    p_1d = _eval_phase_1d(atmosphere.phase, mu_grid, ctx)
+    return mu_grid, np.tile(p_1d[np.newaxis, :], (n_layers, 1))

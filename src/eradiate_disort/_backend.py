@@ -27,7 +27,7 @@ from eradiate.scenes.illumination import DirectionalIllumination
 from eradiate.scenes.measure import MultiDistantMeasure
 from eradiate.units import unit_registry as ureg
 
-from ._pmom import get_pmom
+from ._pmom import get_phase, get_pmom
 from .io import normalize_metadata
 
 logger = logging.getLogger(__name__)
@@ -55,6 +55,12 @@ class EradiateDisortBackend:
 
     verbose : bool, default: False
         If ``False``, silence CDISORT terminal output.
+
+    intensity_correction : {"nakajima_tanaka", "buras_emde"}, default: "nakajima_tanaka"
+        Intensity correction method. ``"nakajima_tanaka"`` uses only Legendre
+        moments and is always available. ``"buras_emde"`` additionally requires
+        the actual phase function values and is more accurate for sharply peaked
+        phase functions (e.g. particles/aerosols).
     """
 
     # This is a prototype interface for a more general Backend class. Backends
@@ -70,6 +76,11 @@ class EradiateDisortBackend:
     # nmom = nstr + 1 by default, must be greater than nstr
     nstr: int = attrs.field(default=16, repr=False)  # TODO: Discuss default
     nmom: int = attrs.field(default=16, repr=False)  # TODO: Discuss default
+    intensity_correction: str = attrs.field(
+        default="nakajima_tanaka",
+        validator=attrs.validators.in_(["nakajima_tanaka", "buras_emde"]),
+        repr=False,
+    )
     verbose: bool = attrs.field(default=False, repr=False)
     _state: nd.DisortState = attrs.field(factory=nd.DisortState, repr=False)
     _results: dict[Hashable, xr.DataArray] = attrs.field(factory=dict, repr=False)
@@ -128,7 +139,9 @@ class EradiateDisortBackend:
                 f"got {type(exp.atmosphere).__name__}"
             )
 
-    def _setup_global(self, exp: AtmosphereExperiment) -> None:
+    def _setup_global(
+        self, exp: AtmosphereExperiment, ref_ctx: KernelContext | None = None
+    ) -> None:
         """
         Perform global setup operations that do not depend on the spectral
         dimension. This method is called once at the beginning of the process()
@@ -160,13 +173,23 @@ class EradiateDisortBackend:
         ds.onlyfl = False  # Return intensity in addition to fluxes
         ds.planck = False  # No thermal emission
 
-        # Enable Nakajima-Tanaka intensity correction. The newer Buras-Emde
-        # correction (old_intensity_correction=False) also requires ds.nphase,
-        # ds.mu_phase, and ds.phase to be populated with the actual phase
-        # function; since we only provide Legendre moments, it would segfault.
-        ds.intensity_correction = True
-        ds.old_intensity_correction = True
-        # TODO: Enable new intensity correction method as well
+        # Intensity correction method
+        if self.intensity_correction == "buras_emde":
+            if ref_ctx is None:
+                raise RuntimeError(
+                    "Buras-Emde correction requires a reference spectral context "
+                    "to size the phase angle grid before allocation."
+                )
+            mu_grid, _ = get_phase(exp.atmosphere, self.nstr, ref_ctx)
+            # +2 accounts for sentinel points added at both ends in _setup_spectral
+            # to guard against floating-point values of ctheta slightly outside [-1, 1]
+            ds.nphase = len(mu_grid) + 2
+            ds.intensity_correction = True
+            ds.old_intensity_correction = False
+        else:  # "nakajima_tanaka"
+            ds.nphase = 0  # keeps mu_phase/phase NULL after allocate()
+            ds.intensity_correction = True
+            ds.old_intensity_correction = True
 
         # Set dimensions
         ds.nlyr = exp.atmosphere.geometry.zgrid.n_layers if exp.atmosphere else 1
@@ -226,6 +249,25 @@ class EradiateDisortBackend:
         # Phase function setup — returns (nmom+1, n_layers), top-to-bottom
         ds.pmom = get_pmom(atmosphere, ds.nmom, ctx)[:, ::-1]
 
+        # Buras-Emde: populate phase angle grid and per-layer phase values
+        if self.intensity_correction == "buras_emde" and atmosphere is not None:
+            mu_grid, phase_tbt = get_phase(atmosphere, ds.nstr, ctx)
+            # Pad with sentinel values at fixed bounds slightly outside [-1, 1].
+            # CDISORT's locate() returns -1 (0-indexed) when ctheta < mu_phase[0],
+            # causing DSPHASE to access a negative offset → SIGSEGV. This happens
+            # because floating-point arithmetic in cdisort.c:3007 can yield
+            # ctheta = -1.0 - ε (a few ULPs below -1.0) even when the geometry
+            # is mathematically exact at -1.0. Sentinels must be placed at fixed
+            # bounds (-1.0 ± eps, 1.0 ± eps), NOT relative to mu_grid[0]/[-1]:
+            # particle-phase grids from eval_mu() often do not cover ±1 exactly,
+            # so a relative offset like mu_grid[0] - eps may still be > -1.0,
+            # leaving ctheta = -1.0 - ε unprotected.
+            _eps = 1e-10
+            mu_padded = np.concatenate([[-1.0 - _eps], mu_grid, [1.0 + _eps]])
+            phase_padded = np.hstack([phase_tbt[:, :1], phase_tbt, phase_tbt[:, -1:]])
+            ds.mu_phase = mu_padded
+            ds.phase = np.ascontiguousarray(phase_padded[::-1, :])
+
         # Illumination setup
         irradiance = exp.illumination.irradiance.eval(ctx.si).m_as("W/m^2/nm")
         ds.fbeam = irradiance  # Incident beam flux
@@ -276,12 +318,13 @@ class EradiateDisortBackend:
         else:
             measure = exp.measures.resolve(measure)
 
-        # Perform global setup
-        self._setup_global(exp)
-
         # Get all spectral loop indices
         measure_idx = exp.measures.get_index(measure.id)
         ctxs = exp.contexts(measure_idx)
+
+        # Perform global setup (pass first context for Buras-Emde phase sizing)
+        ref_ctx = ctxs[0] if ctxs else None
+        self._setup_global(exp, ref_ctx=ref_ctx)
 
         # Run the spectral loop
         results = {}
