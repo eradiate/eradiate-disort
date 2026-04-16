@@ -14,16 +14,45 @@ class Result:
     mitsuba: xr.DataArray | None = None
 
 
-def reshape_pplane(da: xr.DataArray) -> xr.DataArray:
+def reshape_pplane(dt: xr.DataTree) -> xr.DataArray:
     """
-    Reshape and reindex a DataArray that contains data in the principal plane.
+    Extract and reshape principal-plane radiance from a DISORT DataTree.
+
+    Finds the first subtree containing ``uu`` (directional radiance), then
+    reconstructs a signed-zenith principal-plane DataArray by treating
+    ``vaa ≈ 0°`` as the forward half-plane (positive vza) and ``vaa ≈ 180°``
+    as the backward half-plane (negative vza).
+
+    Parameters
+    ----------
+    dt : DataTree
+        Output of :meth:`.EradiateDisortBackend.run`.
+
+    Returns
+    -------
+    DataArray
+        1-D (or near-1-D) radiance indexed by signed viewing zenith angle.
     """
-    result = da.stack(i=("x_index", "y_index")).drop_vars(("i", "x_index", "y_index"))
-    mask_negative = result["vaa"] == 0.0
-    mask_nadir = result["vza"] == 0.0
-    neg = result.where(mask_negative & ~mask_nadir).dropna("i")
-    neg["vza"] *= -1.0
-    pos = result.where(~mask_negative).dropna("i")
-    result = xr.concat((neg, pos), dim="i").sortby("vza")
-    result = result.squeeze()
-    return result
+    # Locate the first radiance subtree
+    for node in dt.children.values():
+        if "uu" in node.ds:
+            da = node.ds["uu"]
+            break
+    else:
+        raise ValueError("No radiance dataset ('uu') found in DataTree")
+
+    da = da.squeeze(drop=True)  # drop scalar dims (single z, single w)
+
+    # vaa=0°  → forward half-plane (positive vza)
+    # vaa=180° → backward half-plane (sign-flip vza)
+    forward = da.sel(vaa=0.0, method="nearest").drop_vars("vaa")
+    backward = (
+        da.sel(vaa=180.0, method="nearest")
+        .drop_vars("vaa")
+        .assign_coords(vza=-da["vza"])
+    )
+
+    # Drop nadir from backward to avoid a duplicate vza=0 point
+    backward = backward.sel(vza=backward["vza"] < 0)
+
+    return xr.concat([backward, forward], dim="vza").sortby("vza")

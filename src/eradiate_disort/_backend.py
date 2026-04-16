@@ -5,7 +5,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Hashable
+from typing import TYPE_CHECKING, Generator, Hashable
 
 import attrs
 import eradiate
@@ -32,6 +32,9 @@ from ._measurements import (
 )
 from ._phase import get_phase, get_pmom
 from ._pipeline import build_disort_pipeline, compute_measures_info
+
+if TYPE_CHECKING:
+    from eradiate.spectral import CKDSpectralGrid, MonoSpectralGrid, SpectralIndex
 
 logger = logging.getLogger(__name__)
 
@@ -76,8 +79,8 @@ class EradiateDisortBackend:
     verbose: bool = attrs.field(default=False, repr=False)
     _state: nd.DisortState = attrs.field(factory=nd.DisortState, repr=False)
     _results: dict[Hashable, dict] = attrs.field(factory=dict, repr=False)
-    _measures_info: list[dict] = attrs.field(factory=list, repr=False)
-    _geometry: dict = attrs.field(factory=dict, repr=False)
+    # Populated at the end of process(); consumed by postprocess()
+    _postprocess_ctx: dict = attrs.field(factory=dict, repr=False)
     _name: str = "CDISORT"
 
     def validate(self, exp: AtmosphereExperiment):
@@ -145,10 +148,23 @@ class EradiateDisortBackend:
 
     def _setup_global(
         self, exp: AtmosphereExperiment, ref_ctx: KernelContext | None = None
-    ) -> None:
+    ) -> dict:
         """
         Perform global setup that does not depend on the spectral dimension.
         Called once at the beginning of :meth:`.process`.
+
+        Returns
+        -------
+        dict
+            Run context with transient processing state. Keys:
+
+            - ``has_radiance`` : bool
+            - ``has_fluxes`` : bool
+            - ``active_measures`` : list
+            - ``mes_mu`` : ndarray — sorted unique cosines for DISORT
+            - ``mes_phi`` : ndarray — azimuth angles [deg] for DISORT
+            - ``ill_mu`` : float — illumination cosine
+            - ``ill_phi`` : float — illumination azimuth [deg]
         """
         logger.debug("EradiateDisortBackend: Global setup")
         ds = self._state
@@ -158,15 +174,8 @@ class EradiateDisortBackend:
         radiance_measures = [
             m for m in measures if isinstance(m, DisortRadianceMeasure)
         ]
-        irradiance_measures = [
-            m for m in measures if isinstance(m, DisortIrradianceMeasure)
-        ]
         has_radiance = len(radiance_measures) > 0
-        has_fluxes = len(irradiance_measures) > 0
-
-        self._has_radiance = has_radiance
-        self._has_fluxes = has_fluxes
-        self._active_measures = measures
+        has_fluxes = any(isinstance(m, DisortIrradianceMeasure) for m in measures)
 
         # Illumination angles
         illumination = exp.illumination
@@ -216,36 +225,51 @@ class EradiateDisortBackend:
             mes_phi = np.sort(np.unique(mes_angles[:, 1].m_as("deg")))
             ds.numu = len(mes_mu)
             ds.nphi = len(mes_phi)
-            self._mes_mu = mes_mu
-            self._mes_phi = mes_phi
         else:
             # DISORT needs at least one umu/phi even with onlyfl=True
             ds.numu = 1
             ds.nphi = 1
-            self._mes_mu = np.array([1.0])  # nadir
-            self._mes_phi = np.array([0.0])
+            mes_mu = np.array([1.0])  # nadir
+            mes_phi = np.array([0.0])
 
-        # ntau is determined from the number of unique user-requested levels
-        # across all measures. We compute a rough count here assuming BOA+TOA
-        # defaults, then refine in _setup_spectral where tau is known.
-        # The actual ntau is set in _setup_spectral on the first call, before
-        # allocate().
-        self._exp = exp  # stash for _setup_spectral access
-        self._ill_mu = ill_mu
-        self._ill_phi = ill_phi
+        return {
+            "has_radiance": has_radiance,
+            "has_fluxes": has_fluxes,
+            "active_measures": measures,
+            "mes_mu": mes_mu,
+            "mes_phi": mes_phi,
+            "ill_mu": ill_mu,
+            "ill_phi": ill_phi,
+        }
 
     def _setup_spectral(
-        self, exp: AtmosphereExperiment, ctx: KernelContext, first_call: bool = False
+        self,
+        exp: AtmosphereExperiment,
+        ctx: KernelContext,
+        run_ctx: dict,
+        first_call: bool = False,
     ) -> None:
         """
         Perform setup that depends on the spectral dimension.
         Called at each iteration of the spectral loop.
+
+        Parameters
+        ----------
+        exp : AtmosphereExperiment
+            Processed experiment configuration.
+        ctx : KernelContext
+            Current spectral context.
+        run_ctx : dict
+            Run context produced by :meth:`._setup_global`.
+        first_call : bool
+            If ``True``, allocates DISORT memory (must be called exactly once,
+            before :meth:`._solve`).
         """
         logger.debug("EradiateDisortBackend: Spectral loop setup")
         ds = self._state
         atmosphere = exp.atmosphere
 
-        # --- Atmospheric optical properties ---
+        # --- Compute values (no array assignments yet — memory may not be allocated) ---
         if atmosphere is not None:
             h = atmosphere.geometry.zgrid.layer_height
             sigma_t = atmosphere.eval_sigma_t(ctx.si)
@@ -255,61 +279,63 @@ class EradiateDisortBackend:
             ssalb = np.atleast_1d(atmosphere.eval_albedo(ctx.si).m_as("dimensionless"))
             ssalb = np.minimum(ssalb, 1.0 - _dither)
 
-            ds.dtauc = tau_btt[::-1]  # DISORT expects top-to-bottom
-            ds.ssalb = ssalb[::-1]
             zgrid = atmosphere.geometry.zgrid
         else:
             tau_btt = np.array([0.0])
-            ds.dtauc = tau_btt
-            ds.ssalb = tau_btt
+            ssalb = np.array([0.0])
             # Minimal two-level zgrid for altitude resolution when no atmosphere
             from eradiate.radprops import ZGrid
 
             zgrid = ZGrid([0.0, 1.0] * ureg.m)
 
-        # --- Phase function ---
-        ds.pmom = get_pmom(atmosphere, ds.nmom, ctx)[:, ::-1]
+        pmom = get_pmom(atmosphere, ds.nmom, ctx)[:, ::-1]
 
-        # Buras-Emde phase function values
+        buras_emde_arrays = None
         if self.intensity_correction == "buras_emde" and atmosphere is not None:
             mu_grid, phase_tbt = get_phase(atmosphere, ds.nstr, ctx)
             _eps = 1e-10
             mu_padded = np.concatenate([[-1.0 - _eps], mu_grid, [1.0 + _eps]])
             phase_padded = np.hstack([phase_tbt[:, :1], phase_tbt, phase_tbt[:, -1:]])
-            ds.mu_phase = mu_padded
-            ds.phase = np.ascontiguousarray(phase_padded[::-1, :])
+            buras_emde_arrays = (mu_padded, np.ascontiguousarray(phase_padded[::-1, :]))
 
-        # --- Merged utau from all measures ---
+        # Merged utau must be computed before allocate() so ntau is known
         merged_utau, measures_info = compute_measures_info(
-            self._active_measures,
+            run_ctx["active_measures"],
             tau_btt,
             zgrid,
-            self._mes_mu,
-            self._mes_phi,
+            run_ctx["mes_mu"],
+            run_ctx["mes_phi"],
         )
 
+        irradiance = exp.illumination.irradiance.eval(ctx.si).m_as("W/m^2/nm")
+        albedo = exp.surface.bsdf.reflectance.eval(ctx.si).m_as("dimensionless")
+
+        # --- Allocate on first call, then assign all arrays ---
         if first_call:
-            # ntau can only be set before allocate(); lock it on the first call
             ds.ntau = len(merged_utau)
             ds.allocate()
-            # Now that memory is allocated, set viewing angles
-            if self._has_radiance:
-                ds.umu = self._mes_mu
-                ds.phi = self._mes_phi
-            else:
-                ds.umu = self._mes_mu
-                ds.phi = self._mes_phi
+            # Save structural info for post-processing (fixed across spectral loop)
+            self._postprocess_ctx["measures_info"] = measures_info
 
+        if atmosphere is not None:
+            ds.dtauc = tau_btt[::-1]  # DISORT expects top-to-bottom
+            ds.ssalb = ssalb[::-1]
+        else:
+            ds.dtauc = tau_btt
+            ds.ssalb = ssalb
+
+        ds.pmom = pmom
+
+        if buras_emde_arrays is not None:
+            ds.mu_phase, ds.phase = buras_emde_arrays
+
+        ds.umu = run_ctx["mes_mu"]
+        ds.phi = run_ctx["mes_phi"]
         ds.utau = merged_utau
-        self._measures_info = measures_info
 
-        # --- Illumination & surface ---
-        irradiance = exp.illumination.irradiance.eval(ctx.si).m_as("W/m^2/nm")
         ds.fbeam = irradiance
-        ds.umu0 = self._ill_mu
-        ds.phi0 = self._ill_phi
-
-        albedo = exp.surface.bsdf.reflectance.eval(ctx.si).m_as("dimensionless")
+        ds.umu0 = run_ctx["ill_mu"]
+        ds.phi0 = run_ctx["ill_phi"]
         ds.albedo = albedo
         ds.fisot = 0.0
         ds.fluor = 0.0
@@ -319,11 +345,11 @@ class EradiateDisortBackend:
         logger.debug("EradiateDisortBackend: Running DISORT solver")
         self._state.solve()
 
-    def _collect_results(self) -> dict:
+    def _collect_results(self, run_ctx: dict) -> dict:
         """Collect all relevant outputs from the DISORT state."""
         ds = self._state
         return {
-            "uu": np.array(ds.uu) if self._has_radiance else None,
+            "uu": np.array(ds.uu) if run_ctx["has_radiance"] else None,
             "rfldir": np.array(ds.rfldir),
             "rfldn": np.array(ds.rfldn),
             "flup": np.array(ds.flup),
@@ -334,11 +360,43 @@ class EradiateDisortBackend:
             "uavgso": np.array(ds.uavgso),
         }
 
+    def _get_spectral_indices(
+        self, exp: AtmosphereExperiment, measure_index: int
+    ) -> Generator[SpectralIndex]:
+        if eradiate.mode().is_mono:
+            spectral_grid: MonoSpectralGrid = exp.spectral_grids[measure_index]
+
+            def generator():
+                yield from spectral_grid.walk_indices()
+
+        elif eradiate.mode().is_ckd:
+            spectral_grid: CKDSpectralGrid = exp.spectral_grids[measure_index]
+            quad_config = exp.ckd_quad_config
+            try:
+                abs_db = exp.atmosphere.abs_db
+            except (
+                AttributeError
+            ):  # There is either no atmosphere or no absorption database
+                abs_db = None
+
+            def generator():
+                yield from spectral_grid.walk_indices(quad_config, abs_db)
+        else:
+            raise UnsupportedModeError
+
+        yield from generator()
+
     def _get_contexts(
-        self, exp: AtmosphereExperiment, measure_idx: int
+        self, exp: AtmosphereExperiment, measure_index: int = 0
     ) -> list[KernelContext]:
-        sis = list(exp.spectral_indices(measure_idx))
-        return [KernelContext(si) for si in sis]
+        """
+        Return the list of spectral contexts for the given measure.
+
+        Uses the spectral grid directly (no Mitsuba kernel required).
+        """
+        return [
+            KernelContext(si) for si in self._get_spectral_indices(exp, measure_index)
+        ]
 
     def process(
         self, exp: AtmosphereExperiment, measure: None | int | str = None
@@ -346,27 +404,30 @@ class EradiateDisortBackend:
         """
         Run the processing step for a given Experiment configuration.
 
+        All measures in the experiment are processed together in a single
+        spectral loop. The spectral grid is taken from ``measure`` (default:
+        the first measure).
+
         Parameters
         ----------
         exp : AtmosphereExperiment
             Processed experiment configuration.
 
         measure : int or str, optional
-            Index or string ID of the processed measure. If unset, defaults to
-            the first measure defined in the experiment configuration.
+            Index or string ID of the measure whose spectral grid drives the
+            loop. Defaults to the first measure.
         """
         exp.init()
 
         if measure is None:
-            measure = exp.measures[0]
+            measure_index = 0
         else:
-            measure = exp.measures.resolve(measure)
+            m = exp.measures.resolve(measure)
+            measure_index = exp.measures.get_index(m.id)
 
-        measure_idx = exp.measures.get_index(measure.id)
-        ctxs = self._get_contexts(exp, measure_idx)
-
+        ctxs = self._get_contexts(exp, measure_index)
         ref_ctx = ctxs[0] if ctxs else None
-        self._setup_global(exp, ref_ctx=ref_ctx)
+        run_ctx = self._setup_global(exp, ref_ctx=ref_ctx)
 
         results = {}
         with tqdm.tqdm(
@@ -382,14 +443,26 @@ class EradiateDisortBackend:
                 pbar.set_description(
                     f"Spectral loop — {self._name} [{ctx.index_formatted}]"
                 )
-                self._setup_spectral(exp, ctx, first_call=(i == 0))
+                self._setup_spectral(exp, ctx, run_ctx, first_call=(i == 0))
                 self._solve()
-                results[ctx.si.as_hashable] = self._collect_results()
-                # Update measures_info from the last spectral call for postprocessing
-                self._last_measures_info = self._measures_info
+                results[ctx.si.as_hashable] = self._collect_results(run_ctx)
                 pbar.update()
 
         self._results = results
+
+        # Store everything postprocess() needs
+        self._postprocess_ctx.update(
+            {
+                "geometry": {
+                    "umu": np.array(self._state.umu),
+                    "phi": np.array(self._state.phi),
+                    "umu0": float(self._state.umu0),
+                    "phi0": float(self._state.phi0),
+                },
+                "spectral_grid": exp.spectral_grids[measure_index],
+                "ckd_quads": exp.ckd_quads[measure_index],
+            }
+        )
 
     def postprocess(
         self, exp: AtmosphereExperiment, measure: None | int | str = None
@@ -397,13 +470,17 @@ class EradiateDisortBackend:
         """
         Run the postprocessing step and return a DataTree.
 
+        Returns a DataTree with one subtree per measure, keyed by measure ID.
+        The ``measure`` argument is accepted for API compatibility but ignored;
+        all measures are always included in the output.
+
         Parameters
         ----------
         exp : AtmosphereExperiment
             Processed experiment configuration.
 
         measure : int or str, optional
-            Index or string ID of the processed measure.
+            Ignored. Present for API compatibility.
 
         Returns
         -------
@@ -412,12 +489,6 @@ class EradiateDisortBackend:
         """
         mode = eradiate.get_mode()
 
-        if measure is None:
-            measure = exp.measures[0]
-        else:
-            measure = exp.measures.resolve(measure)
-        measure_idx = exp.measures.get_index(measure.id)
-
         if mode.is_mono:
             mode_id = "mono"
         elif mode.is_ckd:
@@ -425,23 +496,17 @@ class EradiateDisortBackend:
         else:
             raise UnsupportedModeError
 
-        geometry = {
-            "umu": self._state.umu,
-            "phi": self._state.phi,
-            "umu0": self._state.umu0,
-            "phi0": self._state.phi0,
-        }
-
+        ctx = self._postprocess_ctx
         pipeline = build_disort_pipeline()
         result = pipeline.execute(
             outputs=["datatree"],
             inputs={
                 "raw_results": self._results,
                 "mode": mode_id,
-                "spectral_grid": exp.spectral_grids[measure_idx],
-                "ckd_quads": exp.ckd_quads[measure_idx],
-                "geometry": geometry,
-                "measures_info": self._last_measures_info,
+                "spectral_grid": ctx["spectral_grid"],
+                "ckd_quads": ctx["ckd_quads"],
+                "geometry": ctx["geometry"],
+                "measures_info": ctx["measures_info"],
             },
         )
         return result["datatree"]
@@ -458,7 +523,8 @@ class EradiateDisortBackend:
             Processed experiment configuration.
 
         measure : int or str, optional
-            Index or string ID of the processed measure.
+            Index or string ID of the measure whose spectral grid drives the
+            processing loop. Defaults to the first measure.
 
         Returns
         -------
