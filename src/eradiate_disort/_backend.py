@@ -24,11 +24,14 @@ from eradiate.scenes.atmosphere import (
 )
 from eradiate.scenes.bsdfs import LambertianBSDF
 from eradiate.scenes.illumination import DirectionalIllumination
-from eradiate.scenes.measure import MultiDistantMeasure
 from eradiate.units import unit_registry as ureg
 
-from ._pmom import get_phase, get_pmom
-from .io import normalize_metadata
+from ._measurements import (
+    DisortIrradianceMeasure,
+    DisortRadianceMeasure,
+)
+from ._phase import get_phase, get_pmom
+from ._pipeline import build_disort_pipeline, compute_measures_info
 
 logger = logging.getLogger(__name__)
 
@@ -63,19 +66,8 @@ class EradiateDisortBackend:
         phase functions (e.g. particles/aerosols).
     """
 
-    # This is a prototype interface for a more general Backend class. Backends
-    # are responsible for checking their input (both internal state and
-    # additional parameters provided by an Experiment object) through the
-    # validate() method. After validation is performed, the computation can
-    # start safely using the run() method, which chains the processing and
-    # post-processing steps.
-
-    # By default, coupled nstr and nmom values
-    # nmom depends on the discretization of the phase function
-    # More than 128 streams usually not needed
-    # nmom = nstr + 1 by default, must be greater than nstr
-    nstr: int = attrs.field(default=16, repr=False)  # TODO: Discuss default
-    nmom: int = attrs.field(default=16, repr=False)  # TODO: Discuss default
+    nstr: int = attrs.field(default=16, repr=False)
+    nmom: int = attrs.field(default=16, repr=False)
     intensity_correction: str = attrs.field(
         default="nakajima_tanaka",
         validator=attrs.validators.in_(["nakajima_tanaka", "buras_emde"]),
@@ -83,7 +75,9 @@ class EradiateDisortBackend:
     )
     verbose: bool = attrs.field(default=False, repr=False)
     _state: nd.DisortState = attrs.field(factory=nd.DisortState, repr=False)
-    _results: dict[Hashable, xr.DataArray] = attrs.field(factory=dict, repr=False)
+    _results: dict[Hashable, dict] = attrs.field(factory=dict, repr=False)
+    _measures_info: list[dict] = attrs.field(factory=list, repr=False)
+    _geometry: dict = attrs.field(factory=dict, repr=False)
     _name: str = "CDISORT"
 
     def validate(self, exp: AtmosphereExperiment):
@@ -101,8 +95,6 @@ class EradiateDisortBackend:
         TypeError
             If validation fails.
         """
-        # TODO: Improve raised exception classification (rely on pydantic in the future?)
-
         # Illumination: only directional illumination is supported
         if not isinstance(exp.illumination, DirectionalIllumination):
             raise TypeError(
@@ -110,13 +102,25 @@ class EradiateDisortBackend:
                 f"got {type(exp.illumination).__name__}"
             )
 
-        # Measure: only MultiDistantMeasure (TOA) is supported
+        # Measures: only DisortRadianceMeasure and DisortIrradianceMeasure
+        allowed_measure_types = (DisortRadianceMeasure, DisortIrradianceMeasure)
         for measure in exp.measures:
-            if not isinstance(measure, MultiDistantMeasure):
+            if not isinstance(measure, allowed_measure_types):
                 raise TypeError(
-                    f"EradiateDisortBackend requires MultiDistantMeasure instances, "
-                    f"got {type(measure).__name__}"
+                    f"EradiateDisortBackend requires DisortRadianceMeasure or "
+                    f"DisortIrradianceMeasure instances, got "
+                    f"{type(measure).__name__}"
                 )
+
+        # At most one DisortRadianceMeasure (DISORT has a single umu/phi grid)
+        radiance_measures = [
+            m for m in exp.measures if isinstance(m, DisortRadianceMeasure)
+        ]
+        if len(radiance_measures) > 1:
+            raise TypeError(
+                "EradiateDisortBackend supports at most one DisortRadianceMeasure "
+                f"per run (found {len(radiance_measures)})"
+            )
 
         # Surface: only Lambertian (diffuse) BSDF is supported
         if not isinstance(exp.surface.bsdf, LambertianBSDF):
@@ -143,35 +147,39 @@ class EradiateDisortBackend:
         self, exp: AtmosphereExperiment, ref_ctx: KernelContext | None = None
     ) -> None:
         """
-        Perform global setup operations that do not depend on the spectral
-        dimension. This method is called once at the beginning of the process()
-        method.
+        Perform global setup that does not depend on the spectral dimension.
+        Called once at the beginning of :meth:`.process`.
         """
         logger.debug("EradiateDisortBackend: Global setup")
         ds = self._state
 
-        # Collect sensor data
-        mes = exp.measures[0]
-        mes_angles = mes.direction_layout.angles
-        mask = mes_angles[:, 0] < 0
-        mes_angles[mask, 0] *= -1.0
-        mes_angles[mask, 1] += 180.0 * ureg.deg
-        mes_angles[:, 1] %= 360.0 * ureg.deg
-        mes_mu = np.sort(np.unique(np.cos(mes_angles[:, 0].m_as("rad"))))
-        mes_phi = np.sort(np.unique(mes_angles[:, 1].m_as("deg")))
+        # Classify active measures
+        measures = list(exp.measures)
+        radiance_measures = [
+            m for m in measures if isinstance(m, DisortRadianceMeasure)
+        ]
+        irradiance_measures = [
+            m for m in measures if isinstance(m, DisortIrradianceMeasure)
+        ]
+        has_radiance = len(radiance_measures) > 0
+        has_fluxes = len(irradiance_measures) > 0
 
-        # Collect illumination data
+        self._has_radiance = has_radiance
+        self._has_fluxes = has_fluxes
+        self._active_measures = measures
+
+        # Illumination angles
         illumination = exp.illumination
         ill_mu = np.cos(illumination.zenith.m_as("rad"))
         ill_phi = illumination.azimuth.m_as("deg")
 
-        # Control flags (except thermal emission, see below)
-        ds.quiet = not self.verbose  # Suppress output
-        ds.usrtau = True  # Return radiant quantities at user-specified optical depths
-        ds.usrang = True  # Return radiant quantities at user-specified polar angles
-        ds.lamber = True  # Lambertian bottom boundary
-        ds.onlyfl = False  # Return intensity in addition to fluxes
-        ds.planck = False  # No thermal emission
+        # Control flags
+        ds.quiet = not self.verbose
+        ds.usrtau = True
+        ds.lamber = True
+        ds.planck = False
+        ds.usrang = has_radiance
+        ds.onlyfl = not has_radiance
 
         # Intensity correction method
         if self.intensity_correction == "buras_emde":
@@ -182,123 +190,161 @@ class EradiateDisortBackend:
                 )
             mu_grid, _ = get_phase(exp.atmosphere, self.nstr, ref_ctx)
             # +2 accounts for sentinel points added at both ends in _setup_spectral
-            # to guard against floating-point values of ctheta slightly outside [-1, 1]
             ds.nphase = len(mu_grid) + 2
             ds.intensity_correction = True
             ds.old_intensity_correction = False
         else:  # "nakajima_tanaka"
-            ds.nphase = 0  # keeps mu_phase/phase NULL after allocate()
+            ds.nphase = 0
             ds.intensity_correction = True
             ds.old_intensity_correction = True
 
-        # Set dimensions
+        # Atmosphere layer count
         ds.nlyr = exp.atmosphere.geometry.zgrid.n_layers if exp.atmosphere else 1
-        ds.nstr = self.nstr  # Number of streams
-        ds.nmom = self.nmom  # Phase function moments
+        ds.nstr = self.nstr
+        ds.nmom = self.nmom
 
-        ds.ntau = 2  # Output at boundaries (top and bottom)
-        ds.numu = len(mes_mu)  # User polar angles
-        ds.nphi = len(mes_phi)  # User azimuthal angles
+        # Viewing angle setup (for radiance measure)
+        if has_radiance:
+            rad_measure = radiance_measures[0]
+            mes_angles = rad_measure.direction_layout.angles
+            mask = mes_angles[:, 0] < 0
+            mes_angles = mes_angles.copy()
+            mes_angles[mask, 0] *= -1.0
+            mes_angles[mask, 1] = mes_angles[mask, 1] + 180.0 * ureg.deg
+            mes_angles[:, 1] %= 360.0 * ureg.deg
+            mes_mu = np.sort(np.unique(np.cos(mes_angles[:, 0].m_as("rad"))))
+            mes_phi = np.sort(np.unique(mes_angles[:, 1].m_as("deg")))
+            ds.numu = len(mes_mu)
+            ds.nphi = len(mes_phi)
+            self._mes_mu = mes_mu
+            self._mes_phi = mes_phi
+        else:
+            # DISORT needs at least one umu/phi even with onlyfl=True
+            ds.numu = 1
+            ds.nphi = 1
+            self._mes_mu = np.array([1.0])  # nadir
+            self._mes_phi = np.array([0.0])
 
-        # Allocate dynamic memory buffers
-        ds.allocate()
+        # ntau is determined from the number of unique user-requested levels
+        # across all measures. We compute a rough count here assuming BOA+TOA
+        # defaults, then refine in _setup_spectral where tau is known.
+        # The actual ntau is set in _setup_spectral on the first call, before
+        # allocate().
+        self._exp = exp  # stash for _setup_spectral access
+        self._ill_mu = ill_mu
+        self._ill_phi = ill_phi
 
-        # Thermal emission
-        # ds.temper = ...  # Temperature at each level (needed only if planck is True)
-
-        # Set beam parameters
-        ds.umu0 = ill_mu  # Zenith angle
-        ds.phi0 = ill_phi  # Azimuth angle
-
-        # Set sensor parameters
-        # DISORT requires umu strictly ascending; sort unique positive cosines
-        ds.umu = mes_mu
-        ds.phi = mes_phi  # DISORT expects azimuth in degrees
-
-    def _setup_spectral(self, exp: AtmosphereExperiment, ctx: KernelContext):
+    def _setup_spectral(
+        self, exp: AtmosphereExperiment, ctx: KernelContext, first_call: bool = False
+    ) -> None:
         """
-        Perform setup operations that depend on the spectral dimension. This
-        method is called multiple times in the process() method (at each
-        iteration of the spectral loop).
+        Perform setup that depends on the spectral dimension.
+        Called at each iteration of the spectral loop.
         """
         logger.debug("EradiateDisortBackend: Spectral loop setup")
         ds = self._state
         atmosphere = exp.atmosphere
 
-        # Set atmospheric properties
+        # --- Atmospheric optical properties ---
         if atmosphere is not None:
             h = atmosphere.geometry.zgrid.layer_height
             sigma_t = atmosphere.eval_sigma_t(ctx.si)
-            tau = np.atleast_1d((sigma_t * h).m_as("dimensionless"))
-            ssalb = np.atleast_1d(atmosphere.eval_albedo(ctx.si).m_as("dimensionless"))
+            tau_btt = np.atleast_1d((sigma_t * h).m_as("dimensionless"))
 
-            # CDISORT handles ssalb == 1.0 exactly by replacing with 1 - dither
-            # (dither = 100 * DBL_EPSILON ≈ 2.2e-14). Values in (1-dither, 1) are
-            # not caught by that check but are close enough to 1 to cause NaN in
-            # internal arithmetic. Clip all ssalb to 1 - dither to be safe.
             _dither = 100.0 * np.finfo(float).eps
+            ssalb = np.atleast_1d(atmosphere.eval_albedo(ctx.si).m_as("dimensionless"))
             ssalb = np.minimum(ssalb, 1.0 - _dither)
 
-            ds.dtauc = tau[::-1]
+            ds.dtauc = tau_btt[::-1]  # DISORT expects top-to-bottom
             ds.ssalb = ssalb[::-1]
+            zgrid = atmosphere.geometry.zgrid
         else:
-            tau = np.array([0])
-            ds.dtauc = tau
-            ds.ssalb = tau
+            tau_btt = np.array([0.0])
+            ds.dtauc = tau_btt
+            ds.ssalb = tau_btt
+            # Minimal two-level zgrid for altitude resolution when no atmosphere
+            from eradiate.radprops import ZGrid
 
-        # Phase function setup — returns (nmom+1, n_layers), top-to-bottom
+            zgrid = ZGrid([0.0, 1.0] * ureg.m)
+
+        # --- Phase function ---
         ds.pmom = get_pmom(atmosphere, ds.nmom, ctx)[:, ::-1]
 
-        # Buras-Emde: populate phase angle grid and per-layer phase values
+        # Buras-Emde phase function values
         if self.intensity_correction == "buras_emde" and atmosphere is not None:
             mu_grid, phase_tbt = get_phase(atmosphere, ds.nstr, ctx)
-            # Pad with sentinel values at fixed bounds slightly outside [-1, 1].
-            # CDISORT's locate() returns -1 (0-indexed) when ctheta < mu_phase[0],
-            # causing DSPHASE to access a negative offset → SIGSEGV. This happens
-            # because floating-point arithmetic in cdisort.c:3007 can yield
-            # ctheta = -1.0 - ε (a few ULPs below -1.0) even when the geometry
-            # is mathematically exact at -1.0. Sentinels must be placed at fixed
-            # bounds (-1.0 ± eps, 1.0 ± eps), NOT relative to mu_grid[0]/[-1]:
-            # particle-phase grids from eval_mu() often do not cover ±1 exactly,
-            # so a relative offset like mu_grid[0] - eps may still be > -1.0,
-            # leaving ctheta = -1.0 - ε unprotected.
             _eps = 1e-10
             mu_padded = np.concatenate([[-1.0 - _eps], mu_grid, [1.0 + _eps]])
             phase_padded = np.hstack([phase_tbt[:, :1], phase_tbt, phase_tbt[:, -1:]])
             ds.mu_phase = mu_padded
             ds.phase = np.ascontiguousarray(phase_padded[::-1, :])
 
-        # Illumination setup
+        # --- Merged utau from all measures ---
+        merged_utau, measures_info = compute_measures_info(
+            self._active_measures,
+            tau_btt,
+            zgrid,
+            self._mes_mu,
+            self._mes_phi,
+        )
+
+        if first_call:
+            # ntau can only be set before allocate(); lock it on the first call
+            ds.ntau = len(merged_utau)
+            ds.allocate()
+            # Now that memory is allocated, set viewing angles
+            if self._has_radiance:
+                ds.umu = self._mes_mu
+                ds.phi = self._mes_phi
+            else:
+                ds.umu = self._mes_mu
+                ds.phi = self._mes_phi
+
+        ds.utau = merged_utau
+        self._measures_info = measures_info
+
+        # --- Illumination & surface ---
         irradiance = exp.illumination.irradiance.eval(ctx.si).m_as("W/m^2/nm")
-        ds.fbeam = irradiance  # Incident beam flux
+        ds.fbeam = irradiance
+        ds.umu0 = self._ill_mu
+        ds.phi0 = self._ill_phi
 
-        # Bottom boundary albedo
         albedo = exp.surface.bsdf.reflectance.eval(ctx.si).m_as("dimensionless")
-        ds.albedo = albedo  # Reflection from bottom
+        ds.albedo = albedo
+        ds.fisot = 0.0
+        ds.fluor = 0.0
 
-        # Other boundary conditions
-        ds.fisot = 0.0  # No isotropic top illumination
-        ds.fluor = 0.0  # No bottom illumination
-
-        # Output optical depths (boundaries)
-        ds.utau = np.array([0, np.sum(tau)])
-
-    def _solve(self):
+    def _solve(self) -> None:
         """Run the DISORT solver."""
         logger.debug("EradiateDisortBackend: Running DISORT solver")
         self._state.solve()
+
+    def _collect_results(self) -> dict:
+        """Collect all relevant outputs from the DISORT state."""
+        ds = self._state
+        return {
+            "uu": np.array(ds.uu) if self._has_radiance else None,
+            "rfldir": np.array(ds.rfldir),
+            "rfldn": np.array(ds.rfldn),
+            "flup": np.array(ds.flup),
+            "dfdt": np.array(ds.dfdt),
+            "uavg": np.array(ds.uavg),
+            "uavgdn": np.array(ds.uavgdn),
+            "uavgup": np.array(ds.uavgup),
+            "uavgso": np.array(ds.uavgso),
+        }
+
+    def _get_contexts(
+        self, exp: AtmosphereExperiment, measure_idx: int
+    ) -> list[KernelContext]:
+        sis = list(exp.spectral_indices(measure_idx))
+        return [KernelContext(si) for si in sis]
 
     def process(
         self, exp: AtmosphereExperiment, measure: None | int | str = None
     ) -> None:
         """
         Run the processing step for a given Experiment configuration.
-
-        This method executes the processing step of the backend of a given
-        Experiment configuration and measure identifier. The processing step
-        consists in successive iterations of the spectral loop, for which a
-        radiative transfer simulation run is performed. Results are stored in
-        the :attr:`._result` private property of the instance.
 
         Parameters
         ----------
@@ -309,24 +355,19 @@ class EradiateDisortBackend:
             Index or string ID of the processed measure. If unset, defaults to
             the first measure defined in the experiment configuration.
         """
-        # Make sure that the processed Experiment is initialized
         exp.init()
 
-        # Normalize list of processed measures
         if measure is None:
             measure = exp.measures[0]
         else:
             measure = exp.measures.resolve(measure)
 
-        # Get all spectral loop indices
         measure_idx = exp.measures.get_index(measure.id)
-        ctxs = exp.contexts(measure_idx)
+        ctxs = self._get_contexts(exp, measure_idx)
 
-        # Perform global setup (pass first context for Buras-Emde phase sizing)
         ref_ctx = ctxs[0] if ctxs else None
         self._setup_global(exp, ref_ctx=ref_ctx)
 
-        # Run the spectral loop
         results = {}
         with tqdm.tqdm(
             initial=0,
@@ -337,28 +378,24 @@ class EradiateDisortBackend:
             disable=(config.settings.progress < config.ProgressLevel.SPECTRAL_LOOP)
             or len(ctxs) <= 1,
         ) as pbar:
-            for ctx in ctxs:
+            for i, ctx in enumerate(ctxs):
                 pbar.set_description(
                     f"Spectral loop — {self._name} [{ctx.index_formatted}]"
                 )
-                self._setup_spectral(exp, ctx)
+                self._setup_spectral(exp, ctx, first_call=(i == 0))
                 self._solve()
-                results[ctx.si.as_hashable] = np.array(self._state.uu)
+                results[ctx.si.as_hashable] = self._collect_results()
+                # Update measures_info from the last spectral call for postprocessing
+                self._last_measures_info = self._measures_info
                 pbar.update()
 
-        # Store results in array
         self._results = results
 
     def postprocess(
         self, exp: AtmosphereExperiment, measure: None | int | str = None
-    ) -> xr.DataArray:
+    ) -> xr.DataTree:
         """
-        Run the postprocessing step for a given Experiment configuration.
-
-        This method executes the postprocessing step of the backend of a given
-        Experiment configuration and measure identifier. It assumes that the
-        :meth:`.process` method was successfully called before and uses the
-        stored results.
+        Run the postprocessing step and return a DataTree.
 
         Parameters
         ----------
@@ -366,15 +403,13 @@ class EradiateDisortBackend:
             Processed experiment configuration.
 
         measure : int or str, optional
-            Index or string ID of the processed measure. If unset, defaults to
-            the first measure defined in the experiment configuration.
+            Index or string ID of the processed measure.
 
         Returns
         -------
-        DataArray
-            Post-processed results.
+        DataTree
+            One subtree per measure, keyed by ``/{measure.id}/``.
         """
-
         mode = eradiate.get_mode()
 
         if measure is None:
@@ -384,146 +419,38 @@ class EradiateDisortBackend:
         measure_idx = exp.measures.get_index(measure.id)
 
         if mode.is_mono:
-            result = self._postprocess_mono(exp, measure_idx)
+            mode_id = "mono"
         elif mode.is_ckd:
-            result = self._postprocess_ckd(exp, measure_idx)
+            mode_id = "ckd"
         else:
             raise UnsupportedModeError
 
-        return result
+        geometry = {
+            "umu": self._state.umu,
+            "phi": self._state.phi,
+            "umu0": self._state.umu0,
+            "phi0": self._state.phi0,
+        }
 
-    def _postprocess_mono(
-        self, exp: AtmosphereExperiment, measure_idx: int
-    ) -> xr.DataArray:
-        results = self._results
-        w_coords = np.sort(np.unique(list(results.keys())))
-
-        value_shape = next(iter(results.values())).shape
-        dense_shape = (len(w_coords),) + value_shape
-        dense_data = np.full(dense_shape, np.nan)
-
-        w_idx = {x: i for i, x in enumerate(w_coords)}
-
-        keys = list(results.keys())
-        i_indices = np.array([w_idx[k] for k in keys])
-        values = np.array(list(results.values()))
-
-        dense_data[i_indices] = values
-
-        # Basic data assembly
-        mes_mu = self._state.umu
-        mes_theta = np.rad2deg(np.arccos(mes_mu))
-        mes_phi = self._state.phi
-        mes_tau = self._state.utau
-        vza, vaa = np.meshgrid(mes_theta, mes_phi, indexing="ij")
-
-        result = xr.DataArray(
-            dense_data,
-            coords={
-                "w": ("w", w_coords),
-                "y_index": ("y_index", np.arange(len(mes_theta))),
-                "tau": ("tau", mes_tau),
-                "x_index": ("x_index", np.arange(len(mes_phi))),
-                "vza": (("y_index", "x_index"), vza),
-                "vaa": (("y_index", "x_index"), vaa),
+        pipeline = build_disort_pipeline()
+        result = pipeline.execute(
+            outputs=["datatree"],
+            inputs={
+                "raw_results": self._results,
+                "mode": mode_id,
+                "spectral_grid": exp.spectral_grids[measure_idx],
+                "ckd_quads": exp.ckd_quads[measure_idx],
+                "geometry": geometry,
+                "measures_info": self._last_measures_info,
             },
-            dims=["w", "y_index", "tau", "x_index"],
-            name="radiance_raw",
         )
-
-        # Drop unused taus, add solar angles
-        ill_mu = self._state.umu0
-        ill_theta = np.rad2deg(np.arccos(ill_mu))
-        ill_phi = self._state.phi0
-
-        result = result.isel(tau=0, drop=True)  # tau = 0 means TOA
-        result = result.expand_dims(("saa", "sza"), axis=(-2, -1)).assign_coords(
-            {"saa": ("saa", [ill_phi]), "sza": [ill_theta]}
-        )
-
-        # Apply metadata
-        result = normalize_metadata(result)
-        return result
-
-    def _postprocess_ckd(
-        self, exp: AtmosphereExperiment, measure_idx: int
-    ) -> xr.DataArray:
-        from eradiate.pipelines import logic as pplogic
-
-        results = self._results
-        w_coords = np.sort(np.unique(list(k[0] for k in results.keys())))
-        g_coords = np.sort(np.unique(list(k[1] for k in results.keys())))
-
-        value_shape = next(iter(results.values())).shape
-        dense_shape = (len(w_coords), len(g_coords)) + value_shape
-        dense_data = np.full(dense_shape, np.nan)
-
-        w_idx = {x: i for i, x in enumerate(w_coords)}
-        g_idx = {x: i for i, x in enumerate(g_coords)}
-
-        keys = list(results.keys())
-        i_indices = np.array([w_idx[k[0]] for k in keys])
-        j_indices = np.array([g_idx[k[1]] for k in keys])
-        values = np.array(list(results.values()))
-
-        dense_data[i_indices, j_indices] = values
-
-        # Basic data assembly
-        mes_mu = self._state.umu
-        mes_theta = np.rad2deg(np.arccos(mes_mu))
-        mes_phi = self._state.phi
-        mes_tau = self._state.utau
-        vza, vaa = np.meshgrid(mes_theta, mes_phi, indexing="ij")
-
-        result = xr.DataArray(
-            dense_data,
-            coords={
-                "w": ("w", w_coords),
-                "g": ("g", g_coords),
-                "y_index": ("y_index", np.arange(len(mes_theta))),
-                "tau": ("tau", mes_tau),
-                "x_index": ("x_index", np.arange(len(mes_phi))),
-                "vza": (("y_index", "x_index"), vza),
-                "vaa": (("y_index", "x_index"), vaa),
-            },
-            dims=["w", "g", "y_index", "tau", "x_index"],
-            name="radiance_raw",
-        )
-
-        # Drop unused taus, add solar angles
-        ill_mu = self._state.umu0
-        ill_theta = np.rad2deg(np.arccos(ill_mu))
-        ill_phi = self._state.phi0
-
-        result = result.isel(tau=0, drop=True)  # tau = 0 means TOA
-        result = result.expand_dims(("saa", "sza"), axis=(-2, -1)).assign_coords(
-            {"saa": ("saa", [ill_phi]), "sza": [ill_theta]}
-        )
-
-        # Apply metadata
-        result = normalize_metadata(result)
-
-        # Aggregate the CKD data
-        spectral_grid = exp.spectral_grids[measure_idx]
-        ckd_quads = exp.ckd_quads[measure_idx]
-
-        result = pplogic.aggregate_ckd_quad(
-            raw_data=result,
-            mode_id="ckd",
-            spectral_grid=spectral_grid,
-            ckd_quads=ckd_quads,
-            is_variance=False,
-        )
-
-        return result
+        return result["datatree"]
 
     def run(
         self, exp: AtmosphereExperiment, measure: None | int | str = None
-    ) -> xr.DataArray:
+    ) -> xr.DataTree:
         """
-        Run the backend for a given Experiment configuration.
-
-        This high-level function runs in a sequence the validation, processing and
+        Run validation, processing, and postprocessing in sequence.
 
         Parameters
         ----------
@@ -531,13 +458,12 @@ class EradiateDisortBackend:
             Processed experiment configuration.
 
         measure : int or str, optional
-            Index or string ID of the processed measure. If unset, defaults to
-            the first measure defined in the experiment configuration.
+            Index or string ID of the processed measure.
 
         Returns
         -------
-        DataArray
-            Post-processed results.
+        DataTree
+            Post-processed results, one subtree per measure.
         """
         self.validate(exp)
         self.process(exp, measure=measure)

@@ -2,6 +2,8 @@
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from typing import Literal
+
 import numpy as np
 import xarray as xr
 from eradiate.experiments import AtmosphereExperiment
@@ -9,10 +11,33 @@ from eradiate.radprops import ArrayRadProfile, ZGrid
 from eradiate.units import unit_registry as ureg
 
 
-def no_atmo(sza: float = 0.0):
+def no_atmo(sza: float = 0.0, backend: Literal["mitsuba", "disort"] = "mitsuba"):
     """
     Generate an experiment for the "No atmosphere" test case series.
     """
+    zeniths = np.arange(-75.0, 76.0, 1.0)
+    srf = {"type": "delta", "wavelengths": [550.0]}
+    if backend == "mitsuba":
+        measures = {
+            "type": "mdistant",
+            "id": "toa_mitsuba",
+            "construct": "hplane",
+            "azimuth": 0.0,
+            "zeniths": zeniths,
+            "srf": srf,
+        }
+    elif backend == "disort":
+        measures = {
+            "type": "disoradiance",
+            "id": "toa_disort",
+            "construct": "hplane",
+            "azimuth": 0.0,
+            "zeniths": zeniths,
+            "srf": srf,
+        }
+    else:
+        raise NotImplementedError
+
     return AtmosphereExperiment(
         geometry={
             "type": "plane_parallel",
@@ -22,13 +47,7 @@ def no_atmo(sza: float = 0.0):
         surface={"type": "lambertian", "reflectance": 0.5},
         atmosphere=None,
         illumination={"type": "directional", "zenith": sza, "azimuth": 0.0},
-        measures={
-            "type": "mdistant",
-            "construct": "hplane",
-            "azimuth": 0.0,
-            "zeniths": np.arange(-75.0, 76.0, 1.0),
-            "srf": {"type": "delta", "wavelengths": [550.0]},
-        },
+        measures=measures,
     )
 
 
