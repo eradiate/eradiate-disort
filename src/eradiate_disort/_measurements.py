@@ -29,10 +29,7 @@ def _extract_kwargs(kwargs: dict, keys: list[str]) -> dict:
 
 
 def _utau_from_spec(
-    z_levels: pint.Quantity | None,
-    utau: np.ndarray | None,
-    tau_btt: np.ndarray,
-    zgrid,
+    z_levels: pint.Quantity | None, utau: np.ndarray | None, tau_btt: np.ndarray, zgrid
 ) -> tuple[np.ndarray, pint.Quantity]:
     """
     Resolve a user altitude or optical-depth specification to DISORT utau values.
@@ -148,15 +145,9 @@ class DisortRadianceMeasure(Measure):
         validator=attrs.validators.instance_of(Layout),
     )
 
-    z_levels: pint.Quantity | None = attrs.field(
-        kw_only=True,
-        default=None,
-    )
+    z_levels: pint.Quantity | None = attrs.field(kw_only=True, default=None)
 
-    utau: np.ndarray | None = attrs.field(
-        kw_only=True,
-        default=None,
-    )
+    utau: np.ndarray | None = attrs.field(kw_only=True, default=None)
 
     def __attrs_post_init__(self):
         if self.z_levels is not None and self.utau is not None:
@@ -178,10 +169,7 @@ class DisortRadianceMeasure(Measure):
 
     @classmethod
     def hplane(
-        cls,
-        zeniths: np.typing.ArrayLike,
-        azimuth: float | pint.Quantity,
-        **kwargs,
+        cls, zeniths: np.typing.ArrayLike, azimuth: float | pint.Quantity, **kwargs
     ) -> DisortRadianceMeasure:
         """
         Construct using a hemisphere-plane viewing direction layout.
@@ -192,10 +180,13 @@ class DisortRadianceMeasure(Measure):
             Zenith angle values. Negative values map to the
             ``azimuth + 180°`` half-plane. Unitless values are converted to
             ``ucc['angle']``.
+
         azimuth : float or quantity
             Azimuth of the hemisphere plane cut.
+
         azimuth_convention : AzimuthConvention or str, optional
             Azimuth convention for the layout.
+
         **kwargs
             Forwarded to :class:`DisortRadianceMeasure`.
         """
@@ -208,10 +199,7 @@ class DisortRadianceMeasure(Measure):
 
     @classmethod
     def aring(
-        cls,
-        zenith: float | pint.Quantity,
-        azimuths: np.typing.ArrayLike,
-        **kwargs,
+        cls, zenith: float | pint.Quantity, azimuths: np.typing.ArrayLike, **kwargs
     ) -> DisortRadianceMeasure:
         """
         Construct using an azimuth-ring viewing direction layout.
@@ -236,10 +224,7 @@ class DisortRadianceMeasure(Measure):
 
     @classmethod
     def grid(
-        cls,
-        zeniths: np.typing.ArrayLike,
-        azimuths: np.typing.ArrayLike,
-        **kwargs,
+        cls, zeniths: np.typing.ArrayLike, azimuths: np.typing.ArrayLike, **kwargs
     ) -> DisortRadianceMeasure:
         """
         Construct using a gridded (Cartesian product) viewing direction layout.
@@ -264,9 +249,7 @@ class DisortRadianceMeasure(Measure):
 
     @classmethod
     def from_angles(
-        cls,
-        angles: np.typing.ArrayLike,
-        **kwargs,
+        cls, angles: np.typing.ArrayLike, **kwargs
     ) -> DisortRadianceMeasure:
         """
         Construct from explicit (zenith, azimuth) pairs.
@@ -288,9 +271,7 @@ class DisortRadianceMeasure(Measure):
 
     @classmethod
     def from_directions(
-        cls,
-        directions: np.typing.ArrayLike,
-        **kwargs,
+        cls, directions: np.typing.ArrayLike, **kwargs
     ) -> DisortRadianceMeasure:
         """
         Construct from explicit outward-pointing direction vectors.
@@ -348,15 +329,9 @@ class DisortIrradianceMeasure(Measure):
     not implemented; this measure type is only usable with the DISORT backend.
     """
 
-    z_levels: pint.Quantity | None = attrs.field(
-        kw_only=True,
-        default=None,
-    )
+    z_levels: pint.Quantity | None = attrs.field(kw_only=True, default=None)
 
-    utau: np.ndarray | None = attrs.field(
-        kw_only=True,
-        default=None,
-    )
+    utau: np.ndarray | None = attrs.field(kw_only=True, default=None)
 
     def __attrs_post_init__(self):
         if self.z_levels is not None and self.utau is not None:
