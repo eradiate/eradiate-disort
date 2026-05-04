@@ -11,6 +11,7 @@ from __future__ import annotations
 import attrs
 import numpy as np
 import pint
+from eradiate import unit_registry as ureg
 from eradiate.scenes.measure import (
     AngleLayout,
     AzimuthRingLayout,
@@ -154,6 +155,12 @@ class DisortRadianceMeasure(Measure):
             raise ValueError(
                 "DisortRadianceMeasure: z_levels and utau are mutually exclusive"
             )
+
+    @property
+    def origin(self) -> pint.Quantity:
+        # Dummy origin required by the Measure interface (measure_inside_atmosphere).
+        # Not used by the DISORT backend.
+        return ureg.Quantity([0.0, 0.0, 0.0], "m")
 
     @property
     def film_resolution(self) -> tuple[int, int]:
@@ -338,6 +345,12 @@ class DisortIrradianceMeasure(Measure):
             raise ValueError(
                 "DisortIrradianceMeasure: z_levels and utau are mutually exclusive"
             )
+
+    @property
+    def origin(self) -> pint.Quantity:
+        # Dummy origin required by the Measure interface (measure_inside_atmosphere).
+        # Not used by the DISORT backend.
+        return ureg.Quantity([0.0, 0.0, 0.0], "m")
 
     @property
     def film_resolution(self) -> tuple[int, int]:
