@@ -2,13 +2,30 @@
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-from typing import Literal
+from typing import Literal, Optional
 
 import numpy as np
 import xarray as xr
 from eradiate.experiments import AtmosphereExperiment
 from eradiate.radprops import ArrayRadProfile, ZGrid
 from eradiate.units import unit_registry as ureg
+
+_ZENITHS = np.arange(-75.0, 76.0, 1.0)
+_SRF = {"type": "delta", "wavelengths": [550.0]}
+
+
+def _hplane_measure(backend: str, srf: Optional[dict] = None) -> dict:
+    """Return a hemisphere-plane measure dict for the given backend."""
+    mtype = "mdistant" if backend == "mitsuba" else "disoradiance"
+    result = {
+        "type": mtype,
+        "construct": "hplane",
+        "azimuth": 0.0,
+        "zeniths": _ZENITHS,
+    }
+    if srf is not None:
+        result["srf"] = srf
+    return result
 
 
 def no_atmo(sza: float = 0.0, backend: Literal["mitsuba", "disort"] = "mitsuba"):
@@ -51,7 +68,11 @@ def no_atmo(sza: float = 0.0, backend: Literal["mitsuba", "disort"] = "mitsuba")
     )
 
 
-def single_layer(sza: float = 0.0, phase: str = "isotropic"):
+def single_layer(
+    sza: float = 0.0,
+    phase: str = "isotropic",
+    backend: Literal["mitsuba", "disort"] = "disort",
+):
     """
     Generate an experiment for the "Single layer" test case series.
     """
@@ -64,13 +85,7 @@ def single_layer(sza: float = 0.0, phase: str = "isotropic"):
         surface={"type": "lambertian", "reflectance": 0.0},
         atmosphere={"type": "homogeneous", "phase": {"type": phase}},
         illumination={"type": "directional", "zenith": sza, "azimuth": 0.0},
-        measures={
-            "type": "mdistant",
-            "construct": "hplane",
-            "azimuth": 0.0,
-            "zeniths": np.arange(-75.0, 76.0, 1.0),
-            "srf": {"type": "delta", "wavelengths": [550.0]},
-        },
+        measures=_hplane_measure(backend, srf=_SRF),
     )
 
 
@@ -79,6 +94,7 @@ def two_layers(
     has_scattering: bool = True,
     has_absorption: bool = True,
     surface_reflectance: float = 0.0,
+    backend: Literal["mitsuba", "disort"] = "mitsuba",
 ):
     """
     Generate an experiment for the "Two layers" test case series.
@@ -139,13 +155,7 @@ def two_layers(
             "radprops_profile": radprofile,
         },
         illumination={"type": "directional", "zenith": sza, "azimuth": 0.0},
-        measures={
-            "type": "mdistant",
-            "construct": "hplane",
-            "azimuth": 0.0,
-            "zeniths": np.arange(-75.0, 76.0, 1.0),
-            "srf": {"type": "delta", "wavelengths": [550.0]},
-        },
+        measures=_hplane_measure(backend),
     )
 
 
@@ -154,7 +164,11 @@ def molecular(
     has_scattering: bool = True,
     has_absorption: bool = True,
     surface_reflectance: float = 0.0,
+    backend: Literal["mitsuba", "disort"] = "mitsuba",
 ):
+    """
+    Generate an experiment for the "Molecular atmosphere" test case series.
+    """
     return AtmosphereExperiment(
         geometry={
             "type": "plane_parallel",
@@ -168,13 +182,7 @@ def molecular(
             "has_absorption": has_absorption,
         },
         illumination={"type": "directional", "zenith": sza, "azimuth": 0.0},
-        measures={
-            "type": "mdistant",
-            "construct": "hplane",
-            "azimuth": 0.0,
-            "zeniths": np.arange(-75.0, 76.0, 1.0),
-            "srf": {"type": "delta", "wavelengths": [550.0]},
-        },
+        measures=_hplane_measure(backend),
     )
 
 
@@ -183,7 +191,11 @@ def aerosols(
     has_scattering: bool = True,
     has_absorption: bool = True,
     surface_reflectance: float = 0.0,
+    backend: Literal["mitsuba", "disort"] = "mitsuba",
 ):
+    """
+    Generate an experiment for the "Aerosols" test case series.
+    """
     return AtmosphereExperiment(
         geometry={
             "type": "plane_parallel",
@@ -199,13 +211,7 @@ def aerosols(
             "particle_properties": "soot.mie-aer_core_v2",
         },
         illumination={"type": "directional", "zenith": sza, "azimuth": 0.0},
-        measures={
-            "type": "mdistant",
-            "construct": "hplane",
-            "azimuth": 0.0,
-            "zeniths": np.arange(-75.0, 76.0, 1.0),
-            "srf": {"type": "delta", "wavelengths": [550.0]},
-        },
+        measures=_hplane_measure(backend),
     )
 
 
@@ -214,7 +220,11 @@ def full_atmo(
     has_scattering: bool = True,
     has_absorption: bool = True,
     surface_reflectance: float = 0.0,
+    backend: Literal["mitsuba", "disort"] = "mitsuba",
 ):
+    """
+    Generate an experiment for the "Full atmosphere" test case series.
+    """
     return AtmosphereExperiment(
         geometry={
             "type": "plane_parallel",
@@ -236,11 +246,5 @@ def full_atmo(
             },
         },
         illumination={"type": "directional", "zenith": sza, "azimuth": 0.0},
-        measures={
-            "type": "mdistant",
-            "construct": "hplane",
-            "azimuth": 0.0,
-            "zeniths": np.arange(-75.0, 76.0, 1.0),
-            "srf": {"type": "delta", "wavelengths": [550.0]},
-        },
+        measures=_hplane_measure(backend),
     )
