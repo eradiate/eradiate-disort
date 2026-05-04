@@ -31,7 +31,12 @@ def reshape_pplane(dt: xr.DataTree) -> xr.DataArray:
     Returns
     -------
     DataArray
-        1-D (or near-1-D) radiance indexed by signed viewing zenith angle.
+        Radiance dataset indexed by signed viewing zenith angle.
+
+    Notes
+    -----
+    Following Eradiate's principal plane orientation convention,
+    the back-scattering half-plane maps to positive zenith angles.
     """
     # Locate the first radiance subtree
     for node in dt.children.values():
@@ -43,8 +48,8 @@ def reshape_pplane(dt: xr.DataTree) -> xr.DataArray:
 
     da = da.squeeze(drop=True)  # drop scalar dims (single z, single w)
 
-    # vaa=0°  → forward half-plane (positive vza)
-    # vaa=180° → backward half-plane (sign-flip vza)
+    # vaa=0°: forward half-plane (positive vza)
+    # vaa=180°: backward half-plane (sign-flip vza)
     forward = da.sel(vaa=0.0, method="nearest").drop_vars("vaa")
     backward = (
         da.sel(vaa=180.0, method="nearest")

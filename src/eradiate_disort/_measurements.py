@@ -3,25 +3,27 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 """
-DISORT-specific measure types for Eradiate experiments.
+DISORT-specific measure type for Eradiate experiments.
 """
 
 from __future__ import annotations
+
+from typing import TYPE_CHECKING
 
 import attrs
 import numpy as np
 import pint
 from eradiate import unit_registry as ureg
 from eradiate.scenes.measure import (
-    AngleLayout,
     AzimuthRingLayout,
-    DirectionLayout,
     GridLayout,
     HemispherePlaneLayout,
-    Layout,
     Measure,
     measure_factory,
 )
+
+if TYPE_CHECKING:
+    from eradiate.radprops import ZGrid
 
 
 def _extract_kwargs(kwargs: dict, keys: list[str]) -> dict:
@@ -30,7 +32,10 @@ def _extract_kwargs(kwargs: dict, keys: list[str]) -> dict:
 
 
 def _utau_from_spec(
-    z_levels: pint.Quantity | None, utau: np.ndarray | None, tau_btt: np.ndarray, zgrid
+    z_levels: pint.Quantity | None,
+    utau: np.ndarray | None,
+    tau_btt: np.ndarray,
+    zgrid: ZGrid,
 ) -> tuple[np.ndarray, pint.Quantity]:
     """
     Resolve a user altitude or optical-depth specification to DISORT utau values.
@@ -43,12 +48,15 @@ def _utau_from_spec(
     z_levels : pint.Quantity or None
         User-specified output altitudes. Each value is snapped to the nearest
         zgrid level boundary. Mutually exclusive with ``utau``.
+
     utau : array-like or None
         Direct optical-depth specification (from TOA). Mutually exclusive with
         ``z_levels``. If both are ``None``, return the default ``[0.0, total_tau]``
         pair (TOA and BOA).
+
     tau_btt : ndarray
         Per-layer optical depths in bottom-to-top order, shape ``(n_layers,)``.
+
     zgrid : ZGrid
         Atmospheric altitude grid.
 
@@ -56,6 +64,7 @@ def _utau_from_spec(
     -------
     utau_values : ndarray
         Sorted ascending utau values for DISORT, shape ``(n,)``.
+
     level_altitudes : pint.Quantity
         Altitudes corresponding to each utau value, shape ``(n,)``.
     """
@@ -99,39 +108,60 @@ def _utau_from_spec(
     return utau_values[order], alt_values[order]
 
 
+def _validate_direction_layout(instance, attribute, value):
+    if value is not None and not isinstance(
+        value, (HemispherePlaneLayout, AzimuthRingLayout, GridLayout)
+    ):
+        raise TypeError(
+            f"DisortMeasure.direction_layout must be a HemispherePlaneLayout, "
+            f"AzimuthRingLayout, or GridLayout (or None for flux-only mode); "
+            f"got {type(value).__name__}"
+        )
+
+
 @attrs.define(eq=False, slots=False)
-class DisortRadianceMeasure(Measure):
+class DisortMeasure(Measure):
     """
-    DISORT directional radiance measurement [``disort_radiance``].
+    DISORT measurement [``disort``].
 
-    Records the full spectral radiance field ``uu(umu, utau, phi)`` at
-    user-specified altitudes or optical depths.
+    Records irradiance (flux) and intensity quantities at user-specified
+    altitudes or optical depths. When a direction layout is specified, also
+    records the full spectral radiance field ``uu(umu, utau, phi)``.
 
-    Viewing directions are specified with the same ``direction_layout``
-    interface as :class:`~eradiate.scenes.measure.MultiDistantMeasure`, and all
-    convenience class-method constructors are available.
+    When no ``direction_layout`` is given (the default), DISORT runs with
+    ``onlyfl = True``, skipping angular radiance computation for speed.
+
+    The following irradiance and intensity quantities are always recorded:
+
+    - ``rfldir``: direct-beam downward irradiance
+    - ``rfldn``: diffuse downward irradiance
+    - ``flup``: diffuse upward irradiance
+    - ``dfdt``: flux divergence d(net flux)/d(tau)
+    - ``uavg``: intensity (direct + diffuse)
+    - ``uavgdn``: diffuse downward intensity
+    - ``uavgup``: diffuse upward intensity
+    - ``uavgso``: direct-beam intensity
 
     Parameters
     ----------
-    direction_layout : Layout or array-like or dict, optional
-        Viewing direction specification. Accepts the same forms as
-        :class:`~eradiate.scenes.measure.MultiDistantMeasure`:
+    direction_layout : HemispherePlaneLayout or AzimuthRingLayout or GridLayout, optional
+        Viewing direction specification. Only structured layouts are accepted:
 
-        - a :class:`~eradiate.scenes.measure.Layout` instance;
-        - a (N, 2) array → :class:`~eradiate.scenes.measure.AngleLayout`;
-        - a (N, 3) array → :class:`~eradiate.scenes.measure.DirectionLayout`;
-        - a dict ``{"type": ..., **kwargs}``.
+        - :class:`~eradiate.scenes.measure.HemispherePlaneLayout` (hemisphere plane cut)
+        - :class:`~eradiate.scenes.measure.AzimuthRingLayout` (azimuth ring)
+        - :class:`~eradiate.scenes.measure.GridLayout` (zenith × azimuth grid)
 
-        Defaults to nadir (straight down).
+        Defaults to ``None`` (flux-only mode). Use the :meth:`hplane`,
+        :meth:`aring`, or :meth:`grid` class-method constructors for convenience.
 
     z_levels : quantity, optional
         Output altitudes. Each value is snapped to the nearest zgrid level
         boundary. Mutually exclusive with ``utau``. If neither is set,
-        defaults to TOA only (``utau = [0.0]``).
+        defaults to TOA and BOA.
 
     utau : array-like, optional
         Output optical depths from TOA. Mutually exclusive with ``z_levels``.
-        If neither is set, defaults to TOA only (``[0.0]``).
+        If neither is set, defaults to TOA and BOA.
 
     Notes
     -----
@@ -139,11 +169,12 @@ class DisortRadianceMeasure(Measure):
     this measure type is only usable with the DISORT backend.
     """
 
-    direction_layout: Layout = attrs.field(
-        kw_only=True,
-        factory=lambda: DirectionLayout(directions=[0, 0, 1]),
-        converter=Layout.convert,
-        validator=attrs.validators.instance_of(Layout),
+    direction_layout: HemispherePlaneLayout | AzimuthRingLayout | GridLayout | None = (
+        attrs.field(
+            kw_only=True,
+            default=None,
+            validator=_validate_direction_layout,
+        )
     )
 
     z_levels: pint.Quantity | None = attrs.field(kw_only=True, default=None)
@@ -152,9 +183,7 @@ class DisortRadianceMeasure(Measure):
 
     def __attrs_post_init__(self):
         if self.z_levels is not None and self.utau is not None:
-            raise ValueError(
-                "DisortRadianceMeasure: z_levels and utau are mutually exclusive"
-            )
+            raise ValueError("DisortMeasure: z_levels and utau are mutually exclusive")
 
     @property
     def origin(self) -> pint.Quantity:
@@ -164,6 +193,10 @@ class DisortRadianceMeasure(Measure):
 
     @property
     def film_resolution(self) -> tuple[int, int]:
+        if self.direction_layout is None:
+            raise NotImplementedError(
+                "DisortMeasure in flux-only mode does not map to a Mitsuba film"
+            )
         return (self.direction_layout.n_directions, 1)
 
     @property
@@ -177,7 +210,7 @@ class DisortRadianceMeasure(Measure):
     @classmethod
     def hplane(
         cls, zeniths: np.typing.ArrayLike, azimuth: float | pint.Quantity, **kwargs
-    ) -> DisortRadianceMeasure:
+    ) -> DisortMeasure:
         """
         Construct using a hemisphere-plane viewing direction layout.
 
@@ -195,7 +228,7 @@ class DisortRadianceMeasure(Measure):
             Azimuth convention for the layout.
 
         **kwargs
-            Forwarded to :class:`DisortRadianceMeasure`.
+            Forwarded to :class:`DisortMeasure`.
         """
         layout = HemispherePlaneLayout(
             zeniths=zeniths,
@@ -207,7 +240,7 @@ class DisortRadianceMeasure(Measure):
     @classmethod
     def aring(
         cls, zenith: float | pint.Quantity, azimuths: np.typing.ArrayLike, **kwargs
-    ) -> DisortRadianceMeasure:
+    ) -> DisortMeasure:
         """
         Construct using an azimuth-ring viewing direction layout.
 
@@ -215,12 +248,15 @@ class DisortRadianceMeasure(Measure):
         ----------
         zenith : float or quantity
             Ring zenith angle. Unitless values are converted to ``ucc['angle']``.
+
         azimuths : array-like
             Azimuth values. Unitless values are converted to ``ucc['angle']``.
+
         azimuth_convention : AzimuthConvention or str, optional
             Azimuth convention for the layout.
+
         **kwargs
-            Forwarded to :class:`DisortRadianceMeasure`.
+            Forwarded to :class:`DisortMeasure`.
         """
         layout = AzimuthRingLayout(
             zenith=zenith,
@@ -232,7 +268,7 @@ class DisortRadianceMeasure(Measure):
     @classmethod
     def grid(
         cls, zeniths: np.typing.ArrayLike, azimuths: np.typing.ArrayLike, **kwargs
-    ) -> DisortRadianceMeasure:
+    ) -> DisortMeasure:
         """
         Construct using a gridded (Cartesian product) viewing direction layout.
 
@@ -240,12 +276,15 @@ class DisortRadianceMeasure(Measure):
         ----------
         zeniths : array-like
             Zenith values.
+
         azimuths : array-like
             Azimuth values.
+
         azimuth_convention : AzimuthConvention or str, optional
             Azimuth convention for the layout.
+
         **kwargs
-            Forwarded to :class:`DisortRadianceMeasure`.
+            Forwarded to :class:`DisortMeasure`.
         """
         layout = GridLayout(
             zeniths=zeniths,
@@ -254,114 +293,5 @@ class DisortRadianceMeasure(Measure):
         )
         return cls(direction_layout=layout, **kwargs)
 
-    @classmethod
-    def from_angles(
-        cls, angles: np.typing.ArrayLike, **kwargs
-    ) -> DisortRadianceMeasure:
-        """
-        Construct from explicit (zenith, azimuth) pairs.
 
-        Parameters
-        ----------
-        angles : array-like
-            (N, 2) array of (zenith, azimuth) pairs.
-        azimuth_convention : AzimuthConvention or str, optional
-            Azimuth convention for the layout.
-        **kwargs
-            Forwarded to :class:`DisortRadianceMeasure`.
-        """
-        layout = AngleLayout(
-            angles=angles,
-            **_extract_kwargs(kwargs, ["azimuth_convention"]),
-        )
-        return cls(direction_layout=layout, **kwargs)
-
-    @classmethod
-    def from_directions(
-        cls, directions: np.typing.ArrayLike, **kwargs
-    ) -> DisortRadianceMeasure:
-        """
-        Construct from explicit outward-pointing direction vectors.
-
-        Parameters
-        ----------
-        directions : array-like
-            (N, 3) array of direction vectors (pointing outward from target).
-        azimuth_convention : AzimuthConvention or str, optional
-            Azimuth convention for the layout.
-        **kwargs
-            Forwarded to :class:`DisortRadianceMeasure`.
-        """
-        layout = DirectionLayout(
-            directions=directions,
-            **_extract_kwargs(kwargs, ["azimuth_convention"]),
-        )
-        return cls(direction_layout=layout, **kwargs)
-
-
-@attrs.define(eq=False, slots=False)
-class DisortIrradianceMeasure(Measure):
-    """
-    DISORT irradiance and mean-intensity measurement [``disort_irradiance``].
-
-    Records irradiance (flux) and mean-intensity quantities at user-specified
-    altitudes or optical depths:
-
-    - ``rfldir``: direct-beam downward irradiance
-    - ``rfldn``: diffuse downward irradiance
-    - ``flup``: diffuse upward irradiance
-    - ``dfdt``: flux divergence d(net flux)/d(tau)
-    - ``uavg``: mean intensity (direct + diffuse)
-    - ``uavgdn``: mean diffuse downward intensity
-    - ``uavgup``: mean diffuse upward intensity
-    - ``uavgso``: mean direct-beam intensity
-
-    When this is the only active measure type, DISORT runs with
-    ``onlyfl = True``, which skips angular radiance computation for speed.
-
-    Parameters
-    ----------
-    z_levels : quantity, optional
-        Output altitudes. Each value is snapped to the nearest zgrid level
-        boundary. Mutually exclusive with ``utau``. If neither is set,
-        defaults to TOA and BOA.
-
-    utau : array-like, optional
-        Output optical depths from TOA. Mutually exclusive with ``z_levels``.
-        If neither is set, defaults to TOA and BOA.
-
-    Notes
-    -----
-    The ``kernel_type``, ``template``, and ``film_resolution`` properties are
-    not implemented; this measure type is only usable with the DISORT backend.
-    """
-
-    z_levels: pint.Quantity | None = attrs.field(kw_only=True, default=None)
-
-    utau: np.ndarray | None = attrs.field(kw_only=True, default=None)
-
-    def __attrs_post_init__(self):
-        if self.z_levels is not None and self.utau is not None:
-            raise ValueError(
-                "DisortIrradianceMeasure: z_levels and utau are mutually exclusive"
-            )
-
-    @property
-    def origin(self) -> pint.Quantity:
-        # Dummy origin required by the Measure interface (measure_inside_atmosphere).
-        # Not used by the DISORT backend.
-        return ureg.Quantity([0.0, 0.0, 0.0], "m")
-
-    @property
-    def film_resolution(self) -> tuple[int, int]:
-        raise NotImplementedError(
-            "DisortIrradianceMeasure does not map to a Mitsuba film"
-        )
-
-
-measure_factory.register(
-    DisortRadianceMeasure, type_id="disort_radiance", aliases=["disoradiance"]
-)
-measure_factory.register(
-    DisortIrradianceMeasure, type_id="disort_irradiance", aliases=["disoflux"]
-)
+measure_factory.register(DisortMeasure, type_id="disort", aliases=["disort_measure"])

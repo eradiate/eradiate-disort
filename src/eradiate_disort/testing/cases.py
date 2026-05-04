@@ -2,6 +2,8 @@
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from __future__ import annotations
+
 from typing import Literal, Optional
 
 import numpy as np
@@ -16,7 +18,7 @@ _SRF = {"type": "delta", "wavelengths": [550.0]}
 
 def _hplane_measure(backend: str, srf: Optional[dict] = None) -> dict:
     """Return a hemisphere-plane measure dict for the given backend."""
-    mtype = "mdistant" if backend == "mitsuba" else "disoradiance"
+    mtype = "mdistant" if backend == "mitsuba" else "disort"
     result = {
         "type": mtype,
         "construct": "hplane",
@@ -45,7 +47,7 @@ def no_atmo(sza: float = 0.0, backend: Literal["mitsuba", "disort"] = "mitsuba")
         }
     elif backend == "disort":
         measures = {
-            "type": "disoradiance",
+            "type": "disort",
             "id": "toa_disort",
             "construct": "hplane",
             "azimuth": 0.0,
@@ -103,7 +105,7 @@ def two_layers(
     tau_a = 0.5
     tau_s = 0.25
     sigma_a = tau_a / zgrid.total_height
-    sigma_s = tau_s / zgrid.total_height
+    sigma_s = tau_s / zgrid.total_height  # noqa: F841
 
     # def sigma_constant(value, zgrid):
     #     z = zgrid.levels

@@ -26,10 +26,7 @@ from eradiate.scenes.bsdfs import LambertianBSDF
 from eradiate.scenes.illumination import DirectionalIllumination
 from eradiate.units import unit_registry as ureg
 
-from ._measurements import (
-    DisortIrradianceMeasure,
-    DisortRadianceMeasure,
-)
+from ._measurements import DisortMeasure
 from ._phase import get_phase, get_pmom
 from ._pipeline import build_disort_pipeline, compute_measures_info
 
@@ -66,7 +63,7 @@ class EradiateDisortBackend:
         Intensity correction method. ``"nakajima_tanaka"`` uses only Legendre
         moments and is always available. ``"buras_emde"`` additionally requires
         the actual phase function values and is more accurate for sharply peaked
-        phase functions (e.g. particles/aerosols).
+        phase functions.
     """
 
     nstr: int = attrs.field(default=16, repr=False)
@@ -101,34 +98,30 @@ class EradiateDisortBackend:
         # Illumination: only directional illumination is supported
         if not isinstance(exp.illumination, DirectionalIllumination):
             raise TypeError(
-                f"EradiateDisortBackend requires a DirectionalIllumination, "
+                "EradiateDisortBackend requires a DirectionalIllumination, "
                 f"got {type(exp.illumination).__name__}"
             )
 
-        # Measures: only DisortRadianceMeasure and DisortIrradianceMeasure
-        allowed_measure_types = (DisortRadianceMeasure, DisortIrradianceMeasure)
+        # Measures: only DisortMeasure instances
         for measure in exp.measures:
-            if not isinstance(measure, allowed_measure_types):
+            if not isinstance(measure, DisortMeasure):
                 raise TypeError(
-                    f"EradiateDisortBackend requires DisortRadianceMeasure or "
-                    f"DisortIrradianceMeasure instances, got "
-                    f"{type(measure).__name__}"
+                    "EradiateDisortBackend requires DisortMeasure instances, "
+                    f"got {type(measure).__name__}"
                 )
 
-        # At most one DisortRadianceMeasure (DISORT has a single umu/phi grid)
-        radiance_measures = [
-            m for m in exp.measures if isinstance(m, DisortRadianceMeasure)
-        ]
+        # At most one measure with a direction layout (DISORT has a single umu/phi grid)
+        radiance_measures = [m for m in exp.measures if m.direction_layout is not None]
         if len(radiance_measures) > 1:
             raise TypeError(
-                "EradiateDisortBackend supports at most one DisortRadianceMeasure "
-                f"per run (found {len(radiance_measures)})"
+                "EradiateDisortBackend supports at most one radiance-mode "
+                f"DisortMeasure per run (found {len(radiance_measures)})"
             )
 
         # Surface: only Lambertian (diffuse) BSDF is supported
         if not isinstance(exp.surface.bsdf, LambertianBSDF):
             raise TypeError(
-                f"EradiateDisortBackend requires a Lambertian surface BSDF, "
+                "EradiateDisortBackend requires a Lambertian surface BSDF, "
                 f"got {type(exp.surface.bsdf).__name__}"
             )
 
@@ -153,13 +146,21 @@ class EradiateDisortBackend:
         Perform global setup that does not depend on the spectral dimension.
         Called once at the beginning of :meth:`.process`.
 
+        Parameters
+        ----------
+        exp : AtmosphereExperiment
+            Processed experiment configuration.
+
+        ref_ctx : KernelContext, optional
+            Reference spectral context used for initialization. Required only
+            when using the Buras-Emde intensity correction.
+
         Returns
         -------
         dict
             Run context with transient processing state. Keys:
 
             - ``has_radiance`` : bool
-            - ``has_fluxes`` : bool
             - ``active_measures`` : list
             - ``mes_mu`` : ndarray — sorted unique cosines for DISORT
             - ``mes_phi`` : ndarray — azimuth angles [deg] for DISORT
@@ -171,11 +172,7 @@ class EradiateDisortBackend:
 
         # Classify active measures
         measures = list(exp.measures)
-        radiance_measures = [
-            m for m in measures if isinstance(m, DisortRadianceMeasure)
-        ]
-        has_radiance = len(radiance_measures) > 0
-        has_fluxes = any(isinstance(m, DisortIrradianceMeasure) for m in measures)
+        has_radiance = any(m.direction_layout is not None for m in measures)
 
         # Illumination angles
         illumination = exp.illumination
@@ -214,7 +211,7 @@ class EradiateDisortBackend:
 
         # Viewing angle setup (for radiance measure)
         if has_radiance:
-            rad_measure = radiance_measures[0]
+            rad_measure = next(m for m in measures if m.direction_layout is not None)
             mes_angles = rad_measure.direction_layout.angles
             mask = mes_angles[:, 0] < 0
             mes_angles = mes_angles.copy()
@@ -234,7 +231,6 @@ class EradiateDisortBackend:
 
         return {
             "has_radiance": has_radiance,
-            "has_fluxes": has_fluxes,
             "active_measures": measures,
             "mes_mu": mes_mu,
             "mes_phi": mes_phi,
@@ -257,10 +253,13 @@ class EradiateDisortBackend:
         ----------
         exp : AtmosphereExperiment
             Processed experiment configuration.
+
         ctx : KernelContext
             Current spectral context.
+
         run_ctx : dict
             Run context produced by :meth:`._setup_global`.
+
         first_call : bool
             If ``True``, allocates DISORT memory (must be called exactly once,
             before :meth:`._solve`).
@@ -303,8 +302,6 @@ class EradiateDisortBackend:
             run_ctx["active_measures"],
             tau_btt,
             zgrid,
-            run_ctx["mes_mu"],
-            run_ctx["mes_phi"],
         )
 
         irradiance = exp.illumination.irradiance.eval(ctx.si).m_as("W/m^2/nm")
