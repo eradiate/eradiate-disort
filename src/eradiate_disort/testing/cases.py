@@ -30,6 +30,19 @@ def _hplane_measure(backend: str, srf: Optional[dict] = None) -> dict:
     return result
 
 
+def _grid_measure(backend: str, srf: Optional[dict] = None) -> dict:
+    mtype = "mdistant" if backend == "mitsuba" else "disort"
+    result = {
+        "type": mtype,
+        "construct": "grid",
+        "azimuths": np.arange(0, 360, 10),
+        "zeniths": np.arange(0, 75.1, 5),
+    }
+    if srf is not None:
+        result["srf"] = srf
+    return result
+
+
 def no_atmo(sza: float = 0.0, backend: Literal["mitsuba", "disort"] = "mitsuba"):
     """
     Generate an experiment for the "No atmosphere" test case series.

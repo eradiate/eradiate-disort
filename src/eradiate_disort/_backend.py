@@ -177,7 +177,9 @@ class EradiateDisortBackend:
         # Illumination angles
         illumination = exp.illumination
         ill_mu = np.cos(illumination.zenith.m_as("rad"))
-        ill_phi = illumination.azimuth.m_as("deg")
+        # DISORT phi0 is the azimuth of the beam's travel direction; Eradiate's
+        # illumination.azimuth is the sun's source direction — opposite by 180°.
+        ill_phi = (illumination.azimuth.m_as("deg") + 180.0) % 360.0
 
         # Control flags
         ds.quiet = not self.verbose

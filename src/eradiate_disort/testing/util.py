@@ -14,7 +14,7 @@ class Result:
     mitsuba: xr.DataArray | None = None
 
 
-def reshape_pplane(dt: xr.DataTree) -> xr.DataArray:
+def disort_reshape_pplane(dt: xr.DataTree) -> xr.DataArray:
     """
     Extract and reshape principal-plane radiance from a DISORT DataTree.
 
