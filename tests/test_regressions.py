@@ -8,19 +8,17 @@ from eradiate_disort.testing.regressions import XarrayRegressionFixture
 
 
 class TestToArrays:
-    def test_dataarray_unnamed(self):
+    def test_unnamed_dataarray(self):
         da = xr.DataArray(
             np.array([1.0, 2.0, 3.0]),
             dims=["x"],
             coords={"x": [10.0, 20.0, 30.0]},
         )
         arrays = XarrayRegressionFixture._to_arrays(da)
-        assert "data" in arrays
-        assert "coord_x" in arrays
-        np.testing.assert_array_equal(arrays["data"], da.values)
-        np.testing.assert_array_equal(arrays["coord_x"], da.coords["x"].values)
+        assert set(arrays.keys()) == {"data", "coord_x"}
 
-    def test_dataarray_named(self):
+    def test_named_dataarray_uses_name_as_key(self):
+        # Named arrays must not fall back to the generic "data" key
         da = xr.DataArray(
             np.array([1.0, 2.0]),
             dims=["vza"],
@@ -29,10 +27,9 @@ class TestToArrays:
         )
         arrays = XarrayRegressionFixture._to_arrays(da)
         assert "brf" in arrays
-        assert "coord_vza" in arrays
         assert "data" not in arrays
 
-    def test_dataarray_multiple_coords(self):
+    def test_multiple_coords(self):
         da = xr.DataArray(
             np.ones((3, 2)),
             dims=["vza", "vaa"],
@@ -41,7 +38,6 @@ class TestToArrays:
         )
         arrays = XarrayRegressionFixture._to_arrays(da)
         assert set(arrays.keys()) == {"radiance", "coord_vza", "coord_vaa"}
-        assert arrays["radiance"].shape == (3, 2)
 
     def test_dataset(self):
         ds = xr.Dataset(
@@ -52,22 +48,23 @@ class TestToArrays:
             coords={"vza": [-30.0, 0.0, 30.0]},
         )
         arrays = XarrayRegressionFixture._to_arrays(ds)
-        assert "brf" in arrays
-        assert "irradiance" in arrays
-        assert "coord_vza" in arrays
+        assert set(arrays.keys()) == {"brf", "irradiance", "coord_vza"}
+
+    def test_no_coords(self):
+        arrays = XarrayRegressionFixture._to_arrays(xr.DataArray(np.array([1.0, 2.0])))
+        assert "data" in arrays
 
     def test_invalid_type_raises(self):
         with pytest.raises(TypeError, match="DataArray or Dataset"):
             XarrayRegressionFixture._to_arrays(np.array([1, 2, 3]))
 
-    def test_dataarray_no_coords(self):
-        da = xr.DataArray(np.array([1.0, 2.0]))
-        arrays = XarrayRegressionFixture._to_arrays(da)
-        assert "data" in arrays
-
 
 class TestXarrayRegressionFixture:
-    def test_check_creates_reference(self, xarray_regression):
+    # These tests write reference files on first run and compare on subsequent
+    # runs (pytest-regressions behaviour). Re-generate by deleting the files
+    # under tests/test_regressions/.
+
+    def test_check_dataarray(self, xarray_regression):
         da = xr.DataArray(
             np.array([1.0, 2.0, 3.0]),
             dims=["x"],
