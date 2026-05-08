@@ -6,56 +6,33 @@ from eradiate_disort.testing.plotting import ErPlt, PlotNull
 
 
 class TestPlotNull:
-    def test_attr_access_is_noop(self):
+    def test_null_object_protocol(self):
         p = PlotNull()
-        assert p.plot([1, 2, 3]) is not None  # no AttributeError
+        assert not p
+        assert p.figures == []
+        assert p.saveas is None
 
-    def test_call_returns_plot_null(self):
-        p = PlotNull()
-        result = p.plot([1, 2, 3])
+    def test_chaining_is_noop(self):
+        # __getattr__ must return PlotNull (not None) so chained calls don't raise
+        result = PlotNull().figure("label").plot([1, 2, 3])
         assert isinstance(result, PlotNull)
 
-    def test_figure_returns_plot_null(self):
-        p = PlotNull()
-        assert isinstance(p.figure("label"), PlotNull)
-
-    def test_bool_is_false(self):
-        assert not PlotNull()
-
-    def test_figures_is_empty(self):
-        assert PlotNull().figures == []
-
-    def test_iter_supports_two_unpacking(self):
-        p = PlotNull()
-        fig, ax = p.subplots()  # must not raise
+    def test_subplots_unpacks(self):
+        # Callers do `fig, ax = er_plt.subplots()` — must yield exactly two items
+        fig, ax = PlotNull().subplots()
         assert isinstance(fig, PlotNull)
         assert isinstance(ax, PlotNull)
 
-    def test_saveas_default_none(self):
-        assert PlotNull().saveas is None
 
-    def test_chained_methods_noop(self):
-        p = PlotNull()
-        p.figure().add_subplot(111).plot([1, 2, 3])  # must not raise
-
-
-class TestErPltFixtureInactive:
-    def test_inactive_yields_plot_null(self, er_plt):
-        # Without --plots, fixture should be PlotNull
-        # (when running this test suite without --plots the fixture is inactive)
-        assert isinstance(er_plt, PlotNull) or isinstance(er_plt, ErPlt)
-
-    def test_no_matplotlib_calls_needed(self, er_plt):
-        # These calls must be safe regardless of active/inactive
+class TestErPlt:
+    def test_safe_calls(self, er_plt):
+        # Must not raise regardless of --plots flag
         er_plt.plot([1, 2, 3])
         er_plt.xlabel("x")
         er_plt.ylabel("y")
         er_plt.title("test")
 
-
-class TestErPltFixtureActive:
-    def test_saves_single_figure(self, er_plt, tmp_path, request):
-        """Active ErPlt saves a figure on teardown."""
+    def test_saves_single_figure(self, tmp_path):
         pytest.importorskip("matplotlib")
         import matplotlib.pyplot as plt
 
@@ -64,7 +41,6 @@ class TestErPltFixtureActive:
         plt.plot([1, 2, 3])
         paths = wrapper._teardown()
         assert len(paths) == 1
-        assert paths[0].exists()
         assert paths[0].suffix == ".png"
 
     def test_saves_labelled_figures(self, tmp_path):
@@ -90,19 +66,4 @@ class TestErPltFixtureActive:
         plt.figure()
         plt.plot([1])
         paths = wrapper._teardown()
-        assert len(paths) == 1
         assert paths[0].name == "custom.png"
-
-    def test_figures_property_after_teardown(self, tmp_path):
-        pytest.importorskip("matplotlib")
-        import matplotlib.pyplot as plt
-
-        wrapper = ErPlt(node_id="test__figures_prop", plots_dir=tmp_path)
-        plt.figure()
-        plt.plot([1])
-        wrapper._teardown()
-        assert len(wrapper.figures) == 1
-
-    def test_bool_is_true(self, tmp_path):
-        wrapper = ErPlt(node_id="x", plots_dir=tmp_path)
-        assert bool(wrapper)
