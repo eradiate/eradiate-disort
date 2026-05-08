@@ -20,14 +20,21 @@ extensions = [
     "sphinx.ext.napoleon",
     "sphinx.ext.viewcode",
     # Third-party
+    "myst_nb",
     "sphinx_copybutton",
     "sphinx_design",
     "sphinx_iconify",
     "autodocsumm",
 ]
 
+# -- MyST-NB options ---------------------------------------------------------
+# Never execute notebooks during the Sphinx build.  Outputs must be pre-stored
+# in the .ipynb files (run `pixi run nb-execute` to generate them locally or
+# in CI before the docs build).
+nb_execution_mode = "off"
+
 templates_path = ["_templates"]
-source_suffix = [".rst", ".md"]
+source_suffix = [".rst", ".md", ".ipynb"]
 exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 
 intersphinx_mapping = {

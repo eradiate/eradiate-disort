@@ -42,6 +42,13 @@ CDISORT.
 .. toctree::
     :maxdepth: 2
     :hidden:
+    :caption: Validation Tests
+
+    tests/index
+
+.. toctree::
+    :maxdepth: 2
+    :hidden:
     :caption: API Reference
 
     api/eradiate_disort

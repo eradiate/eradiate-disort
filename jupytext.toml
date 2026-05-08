@@ -1,0 +1,14 @@
+# Jupytext configuration
+# https://jupytext.readthedocs.io/en/latest/config.html
+#
+# The per-file pairing (tests/notebooks// <-> docs/tests//) is declared in
+# each .py script's YAML frontmatter.  This file sets global defaults.
+
+# Preserve cell tags and other metadata across sync operations.
+[default_cell_metadata_filter]
+tags = true
+
+# Do not strip output from paired notebooks — outputs are committed so that
+# MyST-NB can render them on Read The Docs without executing the notebooks.
+[default_notebook_metadata_filter]
+kernelspec = true
