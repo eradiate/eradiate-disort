@@ -25,6 +25,7 @@ scripts = ["ext/eradiate/setpath.sh"]
 [feature.test.pypi-dependencies]
 pytest = ">=8.4"
 pytest-regressions = ">=2.10"
+pytest-benchmark = ">=5.2"
 
 [feature.docs.pypi-dependencies]
 autodocsumm = ">=0.2.14"
@@ -40,6 +41,7 @@ eradiate = { path = "ext/eradiate", editable = true, extras = ["recommended"] }
 seaborn = "*"
 
 [tasks]
+bench = { cmd = "pytest tests/benchmarks/ --benchmark-autosave --benchmark-json=benchmarks/results.json -v", cwd = "." }
 docs = { cmd = "sphinx-build -b html docs docs/_build/html", cwd = "." }
 docs-clean = { cmd = "rm -rf docs/_build/", cwd = "." }
 docs-serve = { cmd = "sphinx-autobuild docs docs/_build/html", cwd = "." }

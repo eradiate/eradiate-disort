@@ -20,3 +20,7 @@ def pytest_configure(config):
         "plotting: test generates diagnostic plots "
         "(skipped implicitly when --plots is absent)",
     )
+    config.addinivalue_line(
+        "markers",
+        "benchmark: performance benchmark (excluded from default run; use `pixi run bench`)",
+    )

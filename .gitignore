@@ -14,3 +14,7 @@ wheels/
 .DS_Store
 .ipynb_checkpoints/
 docs/_build
+
+# pytest-benchmark
+.benchmarks/
+benchmarks/results.json

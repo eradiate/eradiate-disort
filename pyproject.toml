@@ -8,7 +8,7 @@ requires-python = ">=3.9,<3.14"
 dependencies = ["nanodisort==0.2.0.dev1", "xarray", "eradiate"]
 
 [dependency-groups]
-test = ["pytest>=8.4", "pytest-regressions>=2.10"]
+test = ["pytest>=8.4", "pytest-regressions>=2.10", "pytest-benchmark>=5.2"]
 docs = [
   "autodocsumm>=0.2.14",
   "shibuya",
@@ -39,3 +39,4 @@ select = ["E", "F", "I"]
 [tool.pytest.ini_options]
 minversion = "8.4"
 testpaths = ["tests"]
+addopts = "--ignore=tests/benchmarks"
