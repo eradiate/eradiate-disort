@@ -1,5 +1,5 @@
 from eradiate_disort.testing.fixtures import *  # noqa: F403, I001
-from eradiate_disort.testing.plotting import ert_plt  # noqa: F401
+from eradiate_disort.testing.plotting import er_plt  # noqa: F401
 
 
 def pytest_addoption(parser):
@@ -16,5 +16,6 @@ def pytest_addoption(parser):
 def pytest_configure(config):
     config.addinivalue_line(
         "markers",
-        "plotting: test generates diagnostic plots (skipped implicitly when --plots is absent)",
+        "plotting: test generates diagnostic plots "
+        "(skipped implicitly when --plots is absent)",
     )

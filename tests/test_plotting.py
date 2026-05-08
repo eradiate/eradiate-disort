@@ -1,8 +1,8 @@
-"""Smoke tests for the ert_plt fixture."""
+"""Smoke tests for the er_plt fixture."""
 
 import pytest
 
-from eradiate_disort.testing.plotting import ErtPlt, PlotNull
+from eradiate_disort.testing.plotting import ErPlt, PlotNull
 
 
 class TestPlotNull:
@@ -39,27 +39,27 @@ class TestPlotNull:
         p.figure().add_subplot(111).plot([1, 2, 3])  # must not raise
 
 
-class TestErtPltFixtureInactive:
-    def test_inactive_yields_plot_null(self, ert_plt):
+class TestErPltFixtureInactive:
+    def test_inactive_yields_plot_null(self, er_plt):
         # Without --plots, fixture should be PlotNull
         # (when running this test suite without --plots the fixture is inactive)
-        assert isinstance(ert_plt, PlotNull) or isinstance(ert_plt, ErtPlt)
+        assert isinstance(er_plt, PlotNull) or isinstance(er_plt, ErPlt)
 
-    def test_no_matplotlib_calls_needed(self, ert_plt):
+    def test_no_matplotlib_calls_needed(self, er_plt):
         # These calls must be safe regardless of active/inactive
-        ert_plt.plot([1, 2, 3])
-        ert_plt.xlabel("x")
-        ert_plt.ylabel("y")
-        ert_plt.title("test")
+        er_plt.plot([1, 2, 3])
+        er_plt.xlabel("x")
+        er_plt.ylabel("y")
+        er_plt.title("test")
 
 
-class TestErtPltFixtureActive:
-    def test_saves_single_figure(self, ert_plt, tmp_path, request):
-        """Active ErtPlt saves a figure on teardown."""
+class TestErPltFixtureActive:
+    def test_saves_single_figure(self, er_plt, tmp_path, request):
+        """Active ErPlt saves a figure on teardown."""
         pytest.importorskip("matplotlib")
         import matplotlib.pyplot as plt
 
-        wrapper = ErtPlt(node_id="test__saves_single", plots_dir=tmp_path)
+        wrapper = ErPlt(node_id="test__saves_single", plots_dir=tmp_path)
         plt.figure()
         plt.plot([1, 2, 3])
         paths = wrapper._teardown()
@@ -71,7 +71,7 @@ class TestErtPltFixtureActive:
         pytest.importorskip("matplotlib")
         import matplotlib.pyplot as plt
 
-        wrapper = ErtPlt(node_id="test__labelled", plots_dir=tmp_path)
+        wrapper = ErPlt(node_id="test__labelled", plots_dir=tmp_path)
         wrapper.figure("forward")
         plt.plot([1, 2, 3])
         wrapper.figure("backward")
@@ -85,7 +85,7 @@ class TestErtPltFixtureActive:
         pytest.importorskip("matplotlib")
         import matplotlib.pyplot as plt
 
-        wrapper = ErtPlt(node_id="test__saveas", plots_dir=tmp_path)
+        wrapper = ErPlt(node_id="test__saveas", plots_dir=tmp_path)
         wrapper.saveas = "custom.png"
         plt.figure()
         plt.plot([1])
@@ -97,12 +97,12 @@ class TestErtPltFixtureActive:
         pytest.importorskip("matplotlib")
         import matplotlib.pyplot as plt
 
-        wrapper = ErtPlt(node_id="test__figures_prop", plots_dir=tmp_path)
+        wrapper = ErPlt(node_id="test__figures_prop", plots_dir=tmp_path)
         plt.figure()
         plt.plot([1])
         wrapper._teardown()
         assert len(wrapper.figures) == 1
 
     def test_bool_is_true(self, tmp_path):
-        wrapper = ErtPlt(node_id="x", plots_dir=tmp_path)
+        wrapper = ErPlt(node_id="x", plots_dir=tmp_path)
         assert bool(wrapper)

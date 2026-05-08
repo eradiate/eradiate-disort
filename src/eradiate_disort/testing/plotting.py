@@ -18,7 +18,7 @@ def _safe_filename(node_id: str) -> str:
 
 class PlotNull:
     """
-    Lightweight no-op returned by ``ert_plt`` when ``--plots`` is not active.
+    Lightweight no-op returned by ``er_plt`` when ``--plots`` is not active.
 
     All attribute access returns a callable that silently ignores its arguments.
     No matplotlib import occurs, so tests that never pass ``--plots`` pay zero
@@ -37,7 +37,7 @@ class PlotNull:
         return PlotNull()
 
     def __iter__(self):
-        # Support common tuple-unpacking patterns, e.g. ``fig, ax = ert_plt.subplots()``
+        # Support common tuple-unpacking patterns, e.g. ``fig, ax = er_plt.subplots()``
         yield PlotNull()
         yield PlotNull()
 
@@ -49,9 +49,9 @@ class PlotNull:
         return []
 
 
-class ErtPlt:
+class ErPlt:
     """
-    Active matplotlib.pyplot wrapper returned by ``ert_plt`` when ``--plots`` is
+    Active matplotlib.pyplot wrapper returned by ``er_plt`` when ``--plots`` is
     active.
 
     Delegates all attribute access to :mod:`matplotlib.pyplot`. On fixture
@@ -60,16 +60,16 @@ class ErtPlt:
 
     Usage::
 
-        def test_something(ert_plt):
-            ert_plt.plot([1, 2, 3])          # single implicit figure
+        def test_something(er_plt):
+            er_plt.plot([1, 2, 3])  # single implicit figure
 
-        def test_named(ert_plt):
-            fig = ert_plt.figure("fwd")      # labelled figure
+        def test_named(er_plt):
+            fig = er_plt.figure("fwd")  # labelled figure
             fig.add_subplot(111).plot(...)
 
-        def test_custom_name(ert_plt):
-            ert_plt.saveas = "comparison.pdf"
-            ert_plt.plot([1, 2, 3])
+        def test_custom_name(er_plt):
+            er_plt.saveas = "comparison.pdf"
+            er_plt.plot([1, 2, 3])
     """
 
     def __init__(self, node_id: str, plots_dir: Path) -> None:
@@ -132,11 +132,11 @@ class ErtPlt:
 
 
 @pytest.fixture
-def ert_plt(request):
+def er_plt(request):
     """
     Conditional plotting fixture.
 
-    Returns an :class:`ErtPlt` wrapper around :mod:`matplotlib.pyplot` when
+    Returns an :class:`ErPlt` wrapper around :mod:`matplotlib.pyplot` when
     ``--plots`` is active, or a :class:`PlotNull` no-op otherwise.  All open
     figures are saved to the output directory on teardown; no figures are
     generated (and matplotlib is never imported) when ``--plots`` is absent.
@@ -145,16 +145,16 @@ def ert_plt(request):
     --------
     ::
 
-        def test_radiance(ert_plt):
-            ert_plt.plot(vza, radiance, label="DISORT")
-            ert_plt.xlabel("VZA (deg)")
-            ert_plt.ylabel("Radiance")
+        def test_radiance(er_plt):
+            er_plt.plot(vza, radiance, label="DISORT")
+            er_plt.xlabel("VZA (deg)")
+            er_plt.ylabel("Radiance")
 
-        def test_multi(ert_plt):
-            fig1 = ert_plt.figure("forward")
+        def test_multi(er_plt):
+            fig1 = er_plt.figure("forward")
             fig1.add_subplot(111).plot(vza_fwd, rad_fwd)
 
-            fig2 = ert_plt.figure("backward")
+            fig2 = er_plt.figure("backward")
             fig2.add_subplot(111).plot(vza_bwd, rad_bwd)
     """
     plots_dir = request.config.getoption("--plots")
@@ -162,7 +162,7 @@ def ert_plt(request):
         yield PlotNull()
         return
 
-    wrapper = ErtPlt(
+    wrapper = ErPlt(
         node_id=request.node.nodeid,
         plots_dir=Path(plots_dir),
     )
