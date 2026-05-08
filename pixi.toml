@@ -24,6 +24,7 @@ scripts = ["ext/eradiate/setpath.sh"]
 
 [feature.test.pypi-dependencies]
 pytest = ">=8.4"
+pytest-regressions = ">=2.10"
 
 [feature.docs.pypi-dependencies]
 autodocsumm = ">=0.2.14"

@@ -1,5 +1,6 @@
 from eradiate_disort.testing.fixtures import *  # noqa: F403, I001
 from eradiate_disort.testing.plotting import er_plt  # noqa: F401
+from eradiate_disort.testing.regressions import xarray_regression  # noqa: F401
 
 
 def pytest_addoption(parser):

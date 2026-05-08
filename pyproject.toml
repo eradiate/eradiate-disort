@@ -8,7 +8,7 @@ requires-python = ">=3.9,<3.14"
 dependencies = ["nanodisort==0.2.0.dev1", "xarray", "eradiate"]
 
 [dependency-groups]
-test = ["pytest>=8.4"]
+test = ["pytest>=8.4", "pytest-regressions>=2.10"]
 docs = [
   "autodocsumm>=0.2.14",
   "shibuya",
