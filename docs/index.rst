@@ -42,9 +42,9 @@ CDISORT.
 .. toctree::
     :maxdepth: 2
     :hidden:
-    :caption: Validation Tests
+    :caption: Examples
 
-    tests/index
+    examples/index
 
 .. toctree::
     :maxdepth: 2

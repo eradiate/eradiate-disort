@@ -1,13 +1,18 @@
-# SPDX-FileCopyrightText: 2026 Rayference
-# SPDX-License-Identifier: GPL-3.0-or-later
-
 # ---
 # jupyter:
 #   jupytext:
-#     formats: tests/notebooks//py:percent,docs/tests//ipynb
+#     cell_metadata_filter: tags
+#     formats: tests/notebooks//py:percent,docs/examples//ipynb
+#     notebook_metadata_filter: kernelspec
 #     text_representation:
 #       extension: .py
 #       format_name: percent
+#       format_version: '1.3'
+#       jupytext_version: 1.19.1
+#   kernelspec:
+#     display_name: eradiate-disort (pixi)
+#     language: python
+#     name: eradiate-disort
 # ---
 
 # %% [markdown]
