@@ -7,6 +7,26 @@ from __future__ import annotations
 import os
 
 
+class _PlotSaveWrapper:
+    """Delegates to matplotlib.pyplot but suppresses show() and close().
+
+    Used by TestMode.plt() when ERADIATE_SAVE_PLOTS is set so that the er_plt
+    fixture can collect and save open figures at teardown.
+    """
+
+    def __init__(self, plt) -> None:
+        self._plt = plt
+
+    def show(self, *args, **kwargs) -> None:
+        pass
+
+    def close(self, *args, **kwargs) -> None:
+        pass
+
+    def __getattr__(self, name: str):
+        return getattr(self._plt, name)
+
+
 class TestMode:
     """
     Runtime mode selector for notebook scripts shared across tutorials, tests,
@@ -53,6 +73,36 @@ class TestMode:
     def is_benchmark() -> bool:
         """Return ``True`` when running as a benchmark."""
         return TestMode.get() == "benchmark"
+
+    @staticmethod
+    def plt():
+        """
+        Return the appropriate pyplot-compatible object for the current mode.
+
+        In tutorial mode returns :mod:`matplotlib.pyplot`. When
+        ``ERADIATE_SAVE_PLOTS`` is set (by the ``er_plt`` pytest fixture)
+        returns a :class:`_PlotSaveWrapper` that delegates to
+        :mod:`matplotlib.pyplot` but suppresses ``show()`` and ``close()`` so
+        that the fixture can collect and save open figures at teardown.
+        In all other test/benchmark modes returns a
+        :class:`~eradiate_disort.testing.plotting.PlotNull` no-op.
+        """
+        if TestMode.is_tutorial():
+            import matplotlib.pyplot as mpl_plt
+
+            return mpl_plt
+
+        if os.environ.get("ERADIATE_SAVE_PLOTS"):
+            import matplotlib
+
+            matplotlib.use("Agg")
+            import matplotlib.pyplot as mpl_plt
+
+            return _PlotSaveWrapper(mpl_plt)
+
+        from eradiate_disort.testing.plotting import PlotNull
+
+        return PlotNull()
 
     @staticmethod
     def spp(*, tutorial: int = 256, test: int = 4_096, benchmark: int = 4_096) -> int:

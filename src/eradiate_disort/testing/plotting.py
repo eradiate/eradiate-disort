@@ -4,6 +4,7 @@
 
 from __future__ import annotations
 
+import os
 import re
 from pathlib import Path
 from typing import Optional
@@ -36,12 +37,33 @@ class PlotNull:
     def figure(self, label: Optional[str] = None) -> "PlotNull":
         return PlotNull()
 
+    def __getitem__(self, key) -> "PlotNull":
+        return PlotNull()
+
     def __iter__(self):
-        # Support common tuple-unpacking patterns, e.g. ``fig, ax = er_plt.subplots()``
+        # Support tuple-unpacking patterns, e.g. ``fig, ax = er_plt.subplots()``
         yield PlotNull()
         yield PlotNull()
 
+    def __enter__(self) -> "PlotNull":
+        return self
+
+    def __exit__(self, *args) -> None:
+        pass
+
     def __bool__(self) -> bool:
+        return False
+
+    def __lt__(self, other) -> bool:
+        return False
+
+    def __le__(self, other) -> bool:
+        return False
+
+    def __gt__(self, other) -> bool:
+        return False
+
+    def __ge__(self, other) -> bool:
         return False
 
     @property
@@ -162,9 +184,11 @@ def er_plt(request):
         yield PlotNull()
         return
 
+    os.environ["ERADIATE_SAVE_PLOTS"] = str(plots_dir)
     wrapper = ErPlt(
         node_id=request.node.nodeid,
         plots_dir=Path(plots_dir),
     )
     yield wrapper
+    os.environ.pop("ERADIATE_SAVE_PLOTS", None)
     wrapper._teardown()

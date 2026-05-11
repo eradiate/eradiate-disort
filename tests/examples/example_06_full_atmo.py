@@ -2,7 +2,7 @@
 # jupyter:
 #   jupytext:
 #     cell_metadata_filter: tags
-#     formats: tests/notebooks//py:percent,docs/examples//ipynb
+#     formats: tests/examples//py:percent,docs/examples//ipynb
 #     notebook_metadata_filter: kernelspec
 #     text_representation:
 #       extension: .py
@@ -16,19 +16,22 @@
 # ---
 
 # %% [markdown]
-# # Aerosol testing
+# # Full atmosphere testing
 #
-# This notebook tests the backend setup for an atmosphere with aerosols only.
+# This notebook tests the backend setup for an atmosphere with molecular and aerosol
+# components.
 
 # %% tags=["remove-cell"]
 import eradiate
-import matplotlib.pyplot as plt
 import seaborn as sns
 from eradiate.contexts import KernelContext
 
 import eradiate_disort as ed
-from eradiate_disort.testing import TestMode, cases
+from eradiate_disort.testing import TestMode
+from eradiate_disort.testing.cases import full_atmo
 from eradiate_disort.testing.util import Result, disort_reshape_pplane
+
+plt = TestMode.plt()
 
 eradiate.fresolver.prepend("../data")
 eradiate.set_mode("ckd")
@@ -37,7 +40,7 @@ sns.set_theme(style="ticks")
 _base_spp = TestMode.spp(tutorial=1_000, test=10_000)
 SPP = _base_spp // 16 if eradiate.get_mode().is_ckd else _base_spp
 
-exp = cases.aerosols(sza=30.0)
+exp = full_atmo(sza=30.0)
 ctx = KernelContext()
 exp.atmosphere.eval_radprops(ctx.si, optional_fields=True)
 
@@ -73,11 +76,11 @@ for case_id, kwargs in CASES.items():
 
     result = Result()
 
-    exp = cases.aerosols(**kwargs, backend="mitsuba")
+    exp = full_atmo(**kwargs, backend="mitsuba")
     result.mitsuba = eradiate.run(exp, spp=SPP)["radiance"].squeeze()
 
-    exp = cases.aerosols(**kwargs, backend="disort")
-    backend = ed.EradiateDisortBackend()
+    exp = full_atmo(**kwargs, backend="disort")
+    backend = ed.EradiateDisortBackend(intensity_correction="buras_emde")
     result.disort = disort_reshape_pplane(backend.run(exp).sel(z=1e5))
 
     results[case_id] = result

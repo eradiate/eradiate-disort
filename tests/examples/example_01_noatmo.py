@@ -2,7 +2,7 @@
 # jupyter:
 #   jupytext:
 #     cell_metadata_filter: tags
-#     formats: tests/notebooks//py:percent,docs/examples//ipynb
+#     formats: tests/examples//py:percent,docs/examples//ipynb
 #     notebook_metadata_filter: kernelspec
 #     text_representation:
 #       extension: .py
@@ -31,11 +31,12 @@ from eradiate_disort.testing import TestMode, cases
 from eradiate_disort.testing.util import Result, disort_reshape_pplane
 
 sns.set_theme(style="ticks")
-
 eradiate.set_mode("ckd")
 
 _base_spp = TestMode.spp(tutorial=1_000, test=10_000)
 SPP = _base_spp // 16 if eradiate.get_mode().is_ckd else _base_spp
+
+plt = TestMode.plt()
 
 # %%
 result = Result()

@@ -2,7 +2,7 @@
 # jupyter:
 #   jupytext:
 #     cell_metadata_filter: tags
-#     formats: tests/notebooks//py:percent,docs/examples//ipynb
+#     formats: tests/examples//py:percent,docs/examples//ipynb
 #     notebook_metadata_filter: kernelspec
 #     text_representation:
 #       extension: .py
@@ -22,16 +22,15 @@
 
 # %% tags=["remove-cell"]
 import eradiate
-import matplotlib.pyplot as plt
 import seaborn as sns
 
 import eradiate_disort as ed
 from eradiate_disort.testing import TestMode, cases
 from eradiate_disort.testing.util import Result, disort_reshape_pplane
 
-sns.set_theme(style="ticks")
+plt = TestMode.plt()
 
-# eradiate.set_mode("mono")
+sns.set_theme(style="ticks")
 eradiate.set_mode("ckd")
 
 _base_spp = TestMode.spp(tutorial=1_000, test=10_000)

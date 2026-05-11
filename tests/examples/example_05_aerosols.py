@@ -2,7 +2,7 @@
 # jupyter:
 #   jupytext:
 #     cell_metadata_filter: tags
-#     formats: tests/notebooks//py:percent,docs/examples//ipynb
+#     formats: tests/examples//py:percent,docs/examples//ipynb
 #     notebook_metadata_filter: kernelspec
 #     text_representation:
 #       extension: .py
@@ -16,13 +16,12 @@
 # ---
 
 # %% [markdown]
-# # Molecular atmosphere testing
+# # Aerosol testing
 #
-# This notebook tests the backend setup for a molecular atmosphere.
+# This notebook tests the backend setup for an atmosphere with aerosols only.
 
 # %% tags=["remove-cell"]
 import eradiate
-import matplotlib.pyplot as plt
 import seaborn as sns
 from eradiate.contexts import KernelContext
 
@@ -30,20 +29,23 @@ import eradiate_disort as ed
 from eradiate_disort.testing import TestMode, cases
 from eradiate_disort.testing.util import Result, disort_reshape_pplane
 
+plt = TestMode.plt()
+
+eradiate.fresolver.prepend("../data")
 eradiate.set_mode("ckd")
 sns.set_theme(style="ticks")
 
 _base_spp = TestMode.spp(tutorial=1_000, test=10_000)
 SPP = _base_spp // 16 if eradiate.get_mode().is_ckd else _base_spp
 
-exp = cases.molecular(sza=30.0)
+exp = cases.aerosols(sza=30.0)
 ctx = KernelContext()
 exp.atmosphere.eval_radprops(ctx.si, optional_fields=True)
 
 # %%
 results = {}
-_cases = {
-    "rayleigh": {
+CASES = {
+    "scattering": {
         "has_absorption": False,
         "has_scattering": True,
         "surface_reflectance": 0.0,
@@ -65,24 +67,24 @@ _cases = {
     },
 }
 
-for case_id, kwargs in _cases.items():
+for case_id, kwargs in CASES.items():
     print(f"Processing case {case_id!r}")
     if case_id in results:
         continue
 
     result = Result()
 
-    exp = cases.molecular(**kwargs, backend="mitsuba")
+    exp = cases.aerosols(**kwargs, backend="mitsuba")
     result.mitsuba = eradiate.run(exp, spp=SPP)["radiance"].squeeze()
 
-    exp = cases.molecular(**kwargs, backend="disort")
+    exp = cases.aerosols(**kwargs, backend="disort")
     backend = ed.EradiateDisortBackend()
     result.disort = disort_reshape_pplane(backend.run(exp).sel(z=1e5))
 
     results[case_id] = result
 
 # %%
-ncases = len(_cases)
+ncases = len(CASES)
 ncols = 2
 nrows = ncases // ncols + min(ncases % ncols, 1)
 
@@ -90,7 +92,7 @@ fig, axs = plt.subplots(
     nrows, ncols, figsize=(4 * ncols, 3 * nrows), layout="constrained", squeeze=False
 )
 
-for i, case_id in enumerate(_cases.keys()):
+for i, case_id in enumerate(CASES.keys()):
     irow = i // ncols
     icol = i % ncols
     ax = axs.ravel()[i]

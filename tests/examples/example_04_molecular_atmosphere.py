@@ -2,7 +2,7 @@
 # jupyter:
 #   jupytext:
 #     cell_metadata_filter: tags
-#     formats: tests/notebooks//py:percent,docs/examples//ipynb
+#     formats: tests/examples//py:percent,docs/examples//ipynb
 #     notebook_metadata_filter: kernelspec
 #     text_representation:
 #       extension: .py
@@ -16,15 +16,12 @@
 # ---
 
 # %% [markdown]
-# # Two-layer testing
+# # Molecular atmosphere testing
 #
-# This notebook tests the backend setup for a two-layer system with constant
-# extinction coefficient and varying single-scattering albedo.
+# This notebook tests the backend setup for a molecular atmosphere.
 
 # %% tags=["remove-cell"]
 import eradiate
-import matplotlib.pyplot as plt
-import numpy as np
 import seaborn as sns
 from eradiate.contexts import KernelContext
 
@@ -32,50 +29,17 @@ import eradiate_disort as ed
 from eradiate_disort.testing import TestMode, cases
 from eradiate_disort.testing.util import Result, disort_reshape_pplane
 
-eradiate.set_mode("mono")
+plt = TestMode.plt()
+
+eradiate.set_mode("ckd")
 sns.set_theme(style="ticks")
 
-SPP = TestMode.spp(tutorial=1_000, test=10_000)
+_base_spp = TestMode.spp(tutorial=10_000, test=10_000)
+SPP = _base_spp // 16 if eradiate.get_mode().is_ckd else _base_spp
 
-# %%
-exp = cases.two_layers(sza=30.0)
+exp = cases.molecular(sza=30.0)
 ctx = KernelContext()
-radprops = exp.atmosphere.eval_radprops(ctx.si, optional_fields=True)
-zgrid = exp.geometry.zgrid
-h = zgrid.layer_height.m_as("m")
-tau_a = np.atleast_1d((radprops["sigma_a"] * h))
-tau_s = np.atleast_1d((radprops["sigma_s"] * h))
-tau_t = np.atleast_1d((radprops["sigma_t"] * h))
-
-fig, axs = plt.subplots(3, 1, layout="constrained", figsize=(5, 6), sharex=True)
-
-ax = axs[0]
-with plt.rc_context({"lines.linestyle": "", "lines.marker": "."}):
-    ax.plot(radprops["z_layer"], radprops["sigma_t"], label="$\\sigma_t$")
-    ax.plot(radprops["z_layer"], radprops["sigma_a"], label="$\\sigma_a$")
-    ax.plot(radprops["z_layer"], radprops["sigma_s"], label="$\\sigma_s$")
-
-ax.set_ylabel(f"Coll. coeff. [{radprops['sigma_t'].attrs['units']}]")
-ax.set_ylim(0, None)
-ax.legend(loc="center left", bbox_to_anchor=(1.0, 0.5))
-
-ax = axs[1]
-with plt.rc_context({"lines.linestyle": "", "lines.marker": "."}):
-    ax.plot(radprops["z_layer"], tau_t, label="$\\tau_t$")
-    ax.plot(radprops["z_layer"], tau_a, label="$\\tau_a$")
-    ax.plot(radprops["z_layer"], tau_s, label="$\\tau_s$")
-
-ax.set_ylabel("Opt. thick. [—]")
-ax.set_ylim(0, None)
-ax.legend(loc="center left", bbox_to_anchor=(1.0, 0.5))
-
-ax = axs[2]
-with plt.rc_context({"lines.linestyle": "", "lines.marker": "."}):
-    ax.plot(radprops["z_layer"], radprops["albedo"])
-ax.set_ylabel("Albedo")
-ax.set_ylim(-0.05, 1.05)
-
-ax.set_xlabel(radprops["z_layer"].attrs["units"])
+exp.atmosphere.eval_radprops(ctx.si, optional_fields=True)
 
 # %%
 results = {}
@@ -109,10 +73,10 @@ for case_id, kwargs in _cases.items():
 
     result = Result()
 
-    exp = cases.two_layers(**kwargs, backend="mitsuba")
+    exp = cases.molecular(**kwargs, backend="mitsuba")
     result.mitsuba = eradiate.run(exp, spp=SPP)["radiance"].squeeze()
 
-    exp = cases.two_layers(**kwargs, backend="disort")
+    exp = cases.molecular(**kwargs, backend="disort")
     backend = ed.EradiateDisortBackend()
     result.disort = disort_reshape_pplane(backend.run(exp).sel(z=1e5))
 
