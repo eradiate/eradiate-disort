@@ -22,5 +22,6 @@ def pytest_configure(config):
     )
     config.addinivalue_line(
         "markers",
-        "benchmark: performance benchmark (excluded from default run; use `pixi run bench`)",
+        "benchmark: performance benchmark "
+        "(excluded from default run; use `pixi run bench`)",
     )

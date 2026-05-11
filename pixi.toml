@@ -21,6 +21,7 @@ xarray = "*"
 
 [activation]
 scripts = ["ext/eradiate/setpath.sh"]
+env = { ERADIATE_PATH = "$PIXI_PROJECT_ROOT/tests/data" }
 
 [feature.test.pypi-dependencies]
 pytest = ">=8.4"
@@ -51,7 +52,7 @@ test = { cmd = "pytest", cwd = ".", env = { MPLBACKEND = "Agg", ERADIATE_TEST_MO
 bench = { cmd = "pytest tests/benchmarks/ --benchmark-autosave --benchmark-json=benchmarks/results.json -v", cwd = ".", env = { MPLBACKEND = "Agg", ERADIATE_TEST_MODE = "benchmark" } }
 
 # Export percent-format notebooks to ipynb, executing them and saving the output
-nb-execute = { cmd = "jupytext --sync --execute tests/examples/example_*.py", cwd = ".", env = { ERADIATE_TEST_MODE = "test" } }
+nb-execute = { cmd = "jupytext --sync --execute tests/examples/example_*.py", cwd = ".", env = { ERADIATE_TEST_MODE = "tutorial" } }
 
 # Build documentation
 docs = { cmd = "sphinx-build -b html docs docs/_build/html", cwd = "." }
