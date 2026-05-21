@@ -8,7 +8,7 @@
 #       extension: .py
 #       format_name: percent
 #       format_version: '1.3'
-#       jupytext_version: 1.19.2
+#       jupytext_version: 1.19.3
 #   kernelspec:
 #     display_name: eradiate-disort (pixi)
 #     language: python
@@ -21,6 +21,8 @@
 # This notebook tests the backend setup for an atmosphere with aerosols only.
 
 # %% tags=["remove-cell"]
+from pathlib import Path
+
 import eradiate
 import seaborn as sns
 from eradiate.contexts import KernelContext
@@ -31,7 +33,8 @@ from eradiate_disort.testing.util import Result, disort_reshape_pplane
 
 plt = TestMode.plt()
 
-eradiate.fresolver.prepend("../data")
+if "__file__" in globals():
+    eradiate.fresolver.prepend(Path(__file__).parent.parent / "data")
 eradiate.set_mode("ckd")
 sns.set_theme(style="ticks")
 
