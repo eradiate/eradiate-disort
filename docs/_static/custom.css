@@ -1,0 +1,26 @@
+/* Bridge Shibuya's class-based dark mode to MyST-NB's variable-based dark mode.
+ * MyST-NB listens for data-theme or prefers-color-scheme; Shibuya toggles
+ * html.dark / html.light classes. Without this, notebook cell backgrounds do
+ * not respond to the Shibuya theme switch. */
+html.dark {
+    --light: ;
+    --dark: initial;
+}
+
+html.light {
+    --dark: ;
+    --light: initial;
+}
+
+/* ipywidgets (tqdm progress bars) render text in .widget-html-content without
+ * a color, so it stays black in dark mode. Inherit from the theme text color. */
+html.dark .widget-html-content {
+    color: var(--sy-c-text);
+}
+
+/* Slightly smaller font in notebook code cells than in regular code blocks. */
+.cell_input .highlight > pre,
+.cell_output .highlight > pre,
+.cell_output pre {
+    font-size: 0.90rem;
+}

@@ -55,6 +55,7 @@ autodoc_default_options = {
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
 html_static_path = ["_static"]
+html_css_files = ["custom.css"]
 html_title = "eradiate-disort"
 
 # Use Shibuya theme
@@ -65,3 +66,5 @@ html_theme_options = {
     "navigation_with_keys": True,
     "github_url": "https://github.com/eradiate/eradiate-disort",
 }
+
+pygments_style = "default"
