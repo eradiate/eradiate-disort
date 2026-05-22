@@ -10,7 +10,7 @@
 #       format_version: '1.3'
 #       jupytext_version: 1.19.3
 #   kernelspec:
-#     display_name: eradiate-disort (pixi dev)
+#     display_name: eradiate-disort (pixi)
 #     language: python
 #     name: eradiate-disort
 # ---
@@ -22,21 +22,33 @@
 # atmosphere.
 
 # %% tags=["remove-cell"]
+# Documentation-specific setup, hidden from notebook output
+
+# %matplotlib inline
+# %config InlineBackend.figure_format = 'svg'
+
+import seaborn as sns
+
+sns.set_theme(style="ticks")
+
+# %%
 import eradiate
 import matplotlib.pyplot as plt
-import seaborn as sns
 
 import eradiate_disort as ed
 from eradiate_disort.testing import TestMode, cases
 from eradiate_disort.testing.util import Result, disort_reshape_pplane
 
-sns.set_theme(style="ticks")
 eradiate.set_mode("ckd")
 
-_base_spp = TestMode.spp(tutorial=1_000, test=10_000)
-SPP = _base_spp // 16 if eradiate.get_mode().is_ckd else _base_spp
+SPP = 1_000
+
+# %% tags=["remove-cell"]
+# Dev-specific setup, hidden from notebook output
 
 plt = TestMode.plt()
+_base_spp = TestMode.spp(tutorial=1_000, test=10_000)
+SPP = _base_spp // 16 if eradiate.get_mode().is_ckd else _base_spp
 
 # %%
 result = Result()

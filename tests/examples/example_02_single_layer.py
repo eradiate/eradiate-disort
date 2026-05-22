@@ -21,21 +21,34 @@
 # This notebook tests the backend setup for a single layer.
 
 # %% tags=["remove-cell"]
-import eradiate
+# Documentation-specific setup, hidden from notebook output
+
+# %matplotlib inline
+# %config InlineBackend.figure_format = 'svg'
+
 import seaborn as sns
+
+sns.set_theme(style="ticks")
+
+# %%
+import eradiate
+import matplotlib.pyplot as plt
 
 import eradiate_disort as ed
 from eradiate_disort.testing import TestMode, cases
 from eradiate_disort.testing.util import Result, disort_reshape_pplane
 
-plt = TestMode.plt()
-
-sns.set_theme(style="ticks")
 eradiate.set_mode("ckd")
 
+SPP = 1_000
+PHASES = ["isotropic", "rayleigh"]
+
+# %% tags=["remove-cell"]
+# Dev-specific setup, hidden from notebook output
+
+plt = TestMode.plt()
 _base_spp = TestMode.spp(tutorial=1_000, test=10_000)
 SPP = _base_spp // 16 if eradiate.get_mode().is_ckd else _base_spp
-PHASES = ["isotropic", "rayleigh"]
 
 # %%
 results = {}
