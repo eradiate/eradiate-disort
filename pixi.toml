@@ -71,7 +71,10 @@ nb-kernel-register = { cmd = """
 """ }
 
 # Export percent-format notebooks to ipynb, executing them and saving the output
-nb-execute = { cmd = "jupytext --sync --execute tests/examples/example_*.py", cwd = ".", env = { ERADIATE_TEST_MODE = "tutorial" }, depends-on = [
+nb-execute = { cmd = "jupytext --sync --execute", cwd = ".", env = { ERADIATE_TEST_MODE = "tutorial" }, depends-on = [
+  "nb-kernel-register",
+] }
+nb-execute-all = { cmd = "jupytext --sync --execute tests/examples/example_*.py", cwd = ".", env = { ERADIATE_TEST_MODE = "tutorial" }, depends-on = [
   "nb-kernel-register",
 ] }
 
