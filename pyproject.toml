@@ -44,4 +44,4 @@ select = ["E", "F", "I"]
 [tool.pytest.ini_options]
 minversion = "8.4"
 testpaths = ["tests"]
-addopts = "--ignore=tests/benchmarks"
+addopts = "--ignore=tests/benchmarks --tb=short -v"
