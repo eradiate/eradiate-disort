@@ -24,7 +24,7 @@ from nanodisort.utils import phase_functions as pf
 def _get_pmom_particle_layer(
     phase: ParticlePhaseFunction, nmom: int, ctx: KernelContext
 ) -> np.ndarray:
-    pmom_raw = phase.eval_pmom(ctx.si, phamat=0)
+    pmom_raw = phase.eval_pmom(ctx.si)
     # The particle data stores (2l+1)*f_l; DISORT expects f_l directly.
     # Divide by (2l+1) to convert to DISORT convention.
     factors = 2 * np.arange(len(pmom_raw)) + 1

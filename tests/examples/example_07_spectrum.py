@@ -8,7 +8,7 @@
 #       extension: .py
 #       format_name: percent
 #       format_version: '1.3'
-#       jupytext_version: 1.19.3
+#       jupytext_version: 1.19.2
 #   kernelspec:
 #     display_name: eradiate-disort (pixi dev)
 #     language: python
@@ -104,7 +104,7 @@ exp_mitsuba = experiment("mitsuba", **exp_kwargs)
 result_mitsuba = eradiate.run(exp_mitsuba, spp=10_000)
 
 exp_disort = experiment("disort", **exp_kwargs)
-backend = ed.EradiateDisortBackend(intensity_correction="buras_emde")
+backend = ed.EradiateDisortBackend()
 result_disort = backend.run(exp_disort)
 
 # %%
