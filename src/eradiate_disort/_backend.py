@@ -60,7 +60,7 @@ class EradiateDisortBackend:
     verbose : bool, default: False
         If ``False``, silence CDISORT terminal output.
 
-    intensity_correction : {"nakajima_tanaka", "buras_emde"}, default: "nakajima_tanaka"
+    intensity_correction : {"nakajima_tanaka", "buras_emde"}, default: "buras_emde"
         Intensity correction method. ``"nakajima_tanaka"`` uses only Legendre
         moments and is always available. ``"buras_emde"`` additionally requires
         the actual phase function values and is more accurate for sharply peaked
@@ -70,7 +70,7 @@ class EradiateDisortBackend:
     nstr: int = attrs.field(default=16, repr=False)
     nmom: int = attrs.field(default=16, repr=False)
     intensity_correction: str = attrs.field(
-        default="nakajima_tanaka",
+        default="buras_emde",
         validator=attrs.validators.in_(["nakajima_tanaka", "buras_emde"]),
         repr=False,
     )
