@@ -57,9 +57,9 @@ ctx = KernelContext()
 radprops = exp.atmosphere.eval_radprops(ctx.si, optional_fields=True)
 zgrid = exp.geometry.zgrid
 h = zgrid.layer_height.m_as("m")
-tau_a = np.atleast_1d((radprops["sigma_a"] * h))
-tau_s = np.atleast_1d((radprops["sigma_s"] * h))
-tau_t = np.atleast_1d((radprops["sigma_t"] * h))
+tau_a = np.atleast_1d(radprops["sigma_a"] * h)
+tau_s = np.atleast_1d(radprops["sigma_s"] * h)
+tau_t = np.atleast_1d(radprops["sigma_t"] * h)
 
 fig, axs = plt.subplots(3, 1, layout="constrained", figsize=(5, 6), sharex=True)
 

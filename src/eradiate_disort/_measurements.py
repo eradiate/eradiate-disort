@@ -144,7 +144,8 @@ class DisortMeasure(Measure):
 
     Parameters
     ----------
-    direction_layout : HemispherePlaneLayout or AzimuthRingLayout or GridLayout, optional
+    direction_layout : HemispherePlaneLayout or AzimuthRingLayout or GridLayout, \
+                       optional
         Viewing direction specification. Only structured layouts are accepted:
 
         - :class:`~eradiate.scenes.measure.HemispherePlaneLayout` (hemisphere plane cut)

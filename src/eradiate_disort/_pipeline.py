@@ -118,15 +118,15 @@ def stacked_data(raw_results: dict, mode: str) -> dict[str, xr.DataArray]:
 
     else:  # ckd
         keys = sorted(raw_results.keys())
-        w_coords = np.array(sorted(set(k[0] for k in keys)))
-        g_coords = np.array(sorted(set(k[1] for k in keys)))
+        w_coords = np.array(sorted({k[0] for k in keys}))
+        g_coords = np.array(sorted({k[1] for k in keys}))
         w_idx = {w: i for i, w in enumerate(w_coords)}
         g_idx = {g: i for i, g in enumerate(g_coords)}
 
         result = {}
         for field in present_fields:
             val_shape = np.asarray(first[field]).shape
-            dense = np.full((len(w_coords), len(g_coords)) + val_shape, np.nan)
+            dense = np.full((len(w_coords), len(g_coords), *val_shape), np.nan)
             for (w, g), d in raw_results.items():
                 if d[field] is not None:
                     dense[w_idx[w], g_idx[g]] = d[field]

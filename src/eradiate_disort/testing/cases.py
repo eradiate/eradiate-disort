@@ -4,7 +4,7 @@
 
 from __future__ import annotations
 
-from typing import Literal, Optional
+from typing import Literal
 
 import numpy as np
 import xarray as xr
@@ -16,7 +16,7 @@ _ZENITHS = np.arange(-75.0, 76.0, 1.0)
 _SRF = {"type": "delta", "wavelengths": [550.0]}
 
 
-def _hplane_measure(backend: str, srf: Optional[dict] = None) -> dict:
+def _hplane_measure(backend: str, srf: dict | None = None) -> dict:
     """Return a hemisphere-plane measure dict for the given backend."""
     mtype = "mdistant" if backend == "mitsuba" else "disort"
     result = {
@@ -30,7 +30,7 @@ def _hplane_measure(backend: str, srf: Optional[dict] = None) -> dict:
     return result
 
 
-def _grid_measure(backend: str, srf: Optional[dict] = None) -> dict:
+def _grid_measure(backend: str, srf: dict | None = None) -> dict:
     mtype = "mdistant" if backend == "mitsuba" else "disort"
     result = {
         "type": mtype,

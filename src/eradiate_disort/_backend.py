@@ -5,7 +5,8 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Generator, Hashable
+from collections.abc import Generator, Hashable
+from typing import TYPE_CHECKING
 
 import attrs
 import eradiate
@@ -270,7 +271,7 @@ class EradiateDisortBackend:
         ds = self._state
         atmosphere = exp.atmosphere
 
-        # --- Compute values (no array assignments yet — memory may not be allocated) ---
+        # --- Compute values (no array assignments yet — memory may not be allocated)
         if atmosphere is not None:
             h = atmosphere.geometry.zgrid.layer_height
             sigma_t = atmosphere.eval_sigma_t(ctx.si)
@@ -309,7 +310,7 @@ class EradiateDisortBackend:
         irradiance = exp.illumination.irradiance.eval(ctx.si).m_as("W/m^2/nm")
         albedo = exp.surface.bsdf.reflectance.eval(ctx.si).m_as("dimensionless")
 
-        # --- Allocate on first call, then assign all arrays ---
+        # --- Allocate on first call, then assign all arrays
         if first_call:
             ds.ntau = len(merged_utau)
             ds.allocate()

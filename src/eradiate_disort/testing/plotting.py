@@ -7,7 +7,6 @@ from __future__ import annotations
 import os
 import re
 from pathlib import Path
-from typing import Optional
 
 import pytest
 
@@ -26,18 +25,18 @@ class PlotNull:
     import overhead.
     """
 
-    saveas: Optional[str] = None
+    saveas: str | None = None
 
-    def __getattr__(self, name: str) -> "PlotNull":
+    def __getattr__(self, name: str) -> PlotNull:
         return self
 
-    def __call__(self, *args, **kwargs) -> "PlotNull":
+    def __call__(self, *args, **kwargs) -> PlotNull:
         return PlotNull()
 
-    def figure(self, label: Optional[str] = None) -> "PlotNull":
+    def figure(self, label: str | None = None) -> PlotNull:
         return PlotNull()
 
-    def __getitem__(self, key) -> "PlotNull":
+    def __getitem__(self, key) -> PlotNull:
         return PlotNull()
 
     def __iter__(self):
@@ -45,7 +44,7 @@ class PlotNull:
         yield PlotNull()
         yield PlotNull()
 
-    def __enter__(self) -> "PlotNull":
+    def __enter__(self) -> PlotNull:
         return self
 
     def __exit__(self, *args) -> None:
@@ -100,9 +99,9 @@ class ErPlt:
         self._plots_dir.mkdir(parents=True, exist_ok=True)
         self._labels: dict[int, str] = {}
         self._saved_paths: list[Path] = []
-        self.saveas: Optional[str] = None
+        self.saveas: str | None = None
 
-    def figure(self, label: Optional[str] = None):
+    def figure(self, label: str | None = None):
         """Create a new matplotlib figure and optionally attach a label to it."""
         import matplotlib.pyplot as plt
 

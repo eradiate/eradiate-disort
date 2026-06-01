@@ -67,7 +67,7 @@ test = { cmd = "pytest", cwd = ".", env = { MPLBACKEND = "Agg", ERADIATE_TEST_MO
 
 # Run benchmarks
 bench.cmd = """
-    pytest tests/benchmarks/ --benchmark-autosave
+    pytest tests/benchmarks/ --benchmark-autosave \
                              --benchmark-json=benchmarks/results.json -v
 """
 bench.cwd = "."
@@ -98,6 +98,10 @@ docs-serve = { cmd = "sphinx-autobuild docs docs/_build/html", cwd = "." }
 
 # Export locked dependencies for Read The Docs setup
 docs-lock = { cmd = "uv pip freeze --exclude-editable > docs/requirements.txt", cwd = "." }
+
+# Linting
+lint = { cmd = "ruff check", cwd = "." }
+lint-ext = { cmd = "ruff check --extend-select B,C4,SIM,PIE,UP,PERF,NPY,RUF", cwd = "." }
 
 [environments]
 default = { features = ["test"], solve-group = "default" }

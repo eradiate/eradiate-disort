@@ -4,8 +4,6 @@
 
 from __future__ import annotations
 
-from typing import Optional
-
 import numpy as np
 import pytest
 import xarray as xr
@@ -57,8 +55,8 @@ class XarrayRegressionFixture:
     def check(
         self,
         data_object: xr.DataArray | xr.Dataset,
-        default_tolerance: Optional[dict] = None,
-        tolerances: Optional[dict[str, dict]] = None,
+        default_tolerance: dict | None = None,
+        tolerances: dict[str, dict] | None = None,
     ) -> None:
         """
         Compare *data_object* against stored reference data.

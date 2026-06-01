@@ -71,11 +71,11 @@ class TestXarrayRegressionFixture:
             coords={"x": [0.0, 1.0, 2.0]},
             name="signal",
         )
-        xarray_regression.check(da, default_tolerance=dict(atol=1e-6, rtol=1e-6))
+        xarray_regression.check(da, default_tolerance={"atol": 1e-6, "rtol": 1e-6})
 
     def test_check_dataset(self, xarray_regression):
         ds = xr.Dataset(
             {"flux": (["z"], np.array([1.0, 0.9, 0.8]))},
             coords={"z": [0.0, 500.0, 1000.0]},
         )
-        xarray_regression.check(ds, default_tolerance=dict(atol=1e-6))
+        xarray_regression.check(ds, default_tolerance={"atol": 1e-6})
