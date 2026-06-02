@@ -64,7 +64,10 @@ nanodisort = { path = "ext/nanodisort", editable = true }
 eradiate = { path = "ext/eradiate", editable = true }
 
 [tool.pixi.activation]
-scripts = ["ext/eradiate/setpath.sh"]
+# set-macos-deployment-target.sh pins MACOSX_DEPLOYMENT_TARGET to the interpreter's
+# own sysconfig value so locally-built wheel tags match uv's acceptance ceiling
+# (avoids scikit-build-core tagging with the running macOS version). No-op off macOS.
+scripts = ["scripts/set-macos-deployment-target.sh", "ext/eradiate/setpath.sh"]
 env = { ERADIATE_PATH = "$PIXI_PROJECT_ROOT/tests/data" }
 
 [tool.pixi.feature.dev.pypi-dependencies]
