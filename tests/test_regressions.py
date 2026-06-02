@@ -6,6 +6,8 @@ import xarray as xr
 
 from eradiate_disort.testing.regressions import XarrayRegressionFixture
 
+pytestmark = pytest.mark.order(2)
+
 
 class TestToArrays:
     def test_unnamed_dataarray(self):

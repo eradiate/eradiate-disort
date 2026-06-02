@@ -1,3 +1,5 @@
+"""Unit tests for DisortMeasure."""
+
 import numpy as np
 import pytest
 from eradiate.scenes.measure import (
@@ -9,6 +11,8 @@ from eradiate.scenes.measure import (
 )
 
 import eradiate_disort as ed
+
+pytestmark = pytest.mark.order(1)
 
 
 class TestDisortMeasure:

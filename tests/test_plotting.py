@@ -4,6 +4,8 @@ import pytest
 
 from eradiate_disort.testing.plotting import ErPlt, PlotNull
 
+pytestmark = pytest.mark.order(2)
+
 
 class TestPlotNull:
     def test_null_object_protocol(self):
