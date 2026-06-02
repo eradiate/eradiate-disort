@@ -5,7 +5,7 @@ import pytest
 
 from eradiate_disort.testing.plotting import er_plt  # noqa: F401
 
-pytestmark = pytest.mark.order(-1)
+pytestmark = pytest.mark.order(-1)  # negative order value: execute last
 
 
 def test_01_noatmo(er_plt):  # noqa: F811

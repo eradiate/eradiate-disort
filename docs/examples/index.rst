@@ -12,3 +12,6 @@ These notebooks show examples of backend usage.
    example_04_molecular_atmosphere
    example_05_aerosols
    example_06_full_atmo
+   example_07_spectrum
+   example_08_altitude
+   example_09_fluxes

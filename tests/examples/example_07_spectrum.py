@@ -2,7 +2,7 @@
 # jupyter:
 #   jupytext:
 #     cell_metadata_filter: tags
-#     formats: py:percent
+#     formats: tests/examples//py:percent,docs/examples//ipynb
 #     notebook_metadata_filter: kernelspec
 #     text_representation:
 #       extension: .py
@@ -10,7 +10,7 @@
 #       format_version: '1.3'
 #       jupytext_version: 1.19.2
 #   kernelspec:
-#     display_name: eradiate-disort (pixi dev)
+#     display_name: eradiate-disort (pixi)
 #     language: python
 #     name: eradiate-disort
 # ---
@@ -33,6 +33,9 @@ import eradiate_disort as ed
 eradiate.set_mode("ckd")
 sns.set_theme(style="ticks")
 
+# %% [markdown]
+# ## Surface spectrum loading
+
 # %%
 # Load surface spectrum
 from eradiate.scenes.spectra import InterpolatedSpectrum
@@ -46,14 +49,31 @@ albedo_spectrum = InterpolatedSpectrum(
 )
 
 
+# %% [markdown]
+# ## Experiment definition
+
 # %%
 def experiment(backend, wmin=600.0, wmax=610.0, tau_ref=0.0):
     srf = {"type": "uniform", "wmin": wmin, "wmax": wmax}
     angles = {"construct": "hplane", "azimuth": 75.0, "zeniths": [60.0]}
-    measure = (
-        {"type": "mdistant", **angles, "srf": srf}
+    measures = (
+        [
+            {
+                "id": "radiance_toa", 
+                "type": "mdistant", 
+                **angles, 
+                "srf": srf,
+            },
+            {
+                "id": "radiance_boa", 
+                "type": "mdistant", 
+                **angles, "srf": srf, 
+                "target": [1, 1, 0],
+            },
+        ]  # Mitsuba backend: 2 measurements (TOA and BOA levels)
         if backend == "mitsuba"
-        else {"type": "disort", **angles, "srf": srf}
+        else {"id": "disort", "type": "disort", **angles, "srf": srf}
+        # DISORT backend: single measurement to record both TOA and BOA (default)
     )
 
     particle_layer = (
@@ -68,7 +88,7 @@ def experiment(backend, wmin=600.0, wmax=610.0, tau_ref=0.0):
         }
         if tau_ref
         else []
-    )
+    )  # Cloud particle layer if tau_ref is nonzero
 
     exp = AtmosphereExperiment(
         geometry={
@@ -87,12 +107,15 @@ def experiment(backend, wmin=600.0, wmax=610.0, tau_ref=0.0):
             "zenith": 30.0,
             "azimuth": 160.0,
         },
-        measures=measure,
+        measures=measures,
     )
     exp.integrator.moment = True
 
     return exp
 
+
+# %% [markdown]
+# ## Processing
 
 # %%
 exp_kwargs = {"wmin": 600.0, "wmax": 610.0, "tau_ref": 0.0}
@@ -101,30 +124,34 @@ exp_kwargs = {"wmin": 600.0, "wmax": 610.0, "tau_ref": 0.0}
 # exp_kwargs = {"wmin": 600.0, "wmax": 610.0, "tau_ref": 10.0}
 
 exp_mitsuba = experiment("mitsuba", **exp_kwargs)
-result_mitsuba = eradiate.run(exp_mitsuba, spp=10_000)
+eradiate.run(exp_mitsuba, spp=10_000)
+result_mitsuba = exp_mitsuba.results
 
 exp_disort = experiment("disort", **exp_kwargs)
-backend = ed.EradiateDisortBackend()
+backend = ed.DisortBackend()
 result_disort = backend.run(exp_disort)
+
+# %% [markdown]
+# ## TOA radiance and BRF plotting
 
 # %%
 # Extract irradiance
-irradiance = result_mitsuba["irradiance"].squeeze()
+irradiance_toa_mitsuba = result_mitsuba["radiance_toa"]["irradiance"].squeeze()
 
 # Extract Mitsuba radiance
-radiance_mitsuba = result_mitsuba["radiance"].squeeze()
-radiance_mitsuba_std = np.sqrt(result_mitsuba["radiance_var"].squeeze())
+radiance_toa_mitsuba = result_mitsuba["radiance_toa"]["radiance"].squeeze()
+radiance_toa_mitsuba_std = np.sqrt(result_mitsuba["radiance_toa"]["radiance_var"].squeeze())
 
 # Compute Mitsuba BRF standard deviation
-brf_mitsuba = result_mitsuba["brf"].squeeze()
-x = np.pi / result_mitsuba["irradiance"]
-brf_mitsuba_std = np.sqrt((result_mitsuba["radiance_var"] * x**2).squeeze())
+brf_toa_mitsuba = result_mitsuba["radiance_toa"]["brf"].squeeze()
+x = np.pi / result_mitsuba["radiance_toa"]["irradiance"]
+brf_toa_mitsuba_std = np.sqrt((result_mitsuba["radiance_toa"]["radiance_var"] * x**2).squeeze())
 
 # Compute DISORT BRF
-radiance_disort = result_disort["measure"]["uu"].isel(z=0).squeeze()
-irradiance_disort = result_disort["measure"]["rfldir"].isel(z=0).squeeze()
+radiance_toa_disort = result_disort["disort"]["uu"].isel(z=0).squeeze()
+irradiance_toa_disort = result_disort["disort"]["rfldir"].isel(z=0).squeeze()
 cos_theta_s = np.cos(exp_disort.illumination.zenith.m_as("rad"))
-brf_disort = radiance_disort / irradiance_disort * np.pi
+brf_toa_disort = radiance_toa_disort / irradiance_toa_disort * np.pi
 
 # %%
 wmin, wmax = 600.0, 850.0
@@ -134,8 +161,8 @@ wmin, wmax = 600.0, 850.0
 fig, axs = plt.subplots(2, 1, height_ratios=[0.5, 1], sharex=True, layout="constrained")
 
 ax = axs[0]
-x = irradiance["w"].values
-y = irradiance.values
+x = irradiance_toa_mitsuba["w"].values
+y = irradiance_toa_mitsuba.values
 
 mask = (x >= wmin) & (x <= wmax)
 ax.step(x[mask], y[mask], where="mid", label="Solar horizontal irradiance", c="C2")
@@ -144,9 +171,9 @@ ax.set_ylabel("Irradiance\n[W/m²/nm]")
 ax.legend()
 
 ax = axs[1]
-x = radiance_mitsuba["w"].values
-y = radiance_mitsuba.values
-y_std = radiance_mitsuba_std.values
+x = radiance_toa_mitsuba["w"].values
+y = radiance_toa_mitsuba.values
+y_std = radiance_toa_mitsuba_std.values
 ymin = y - y_std * 2.0
 ymax = y + y_std * 2.0
 
@@ -154,8 +181,8 @@ mask = (x >= wmin) & (x <= wmax)
 ax.step(x[mask], y[mask], where="mid", label="Mitsuba")
 ax.fill_between(x[mask], ymin[mask], ymax[mask], step="mid", alpha=0.25)
 
-x = radiance_disort["w"].values
-y = radiance_disort.values
+x = radiance_toa_disort["w"].values
+y = radiance_toa_disort.values
 
 mask = (x >= wmin) & (x <= wmax)
 ax.step(x[mask], y[mask], where="mid", label="DISORT")
@@ -175,17 +202,17 @@ plt.close()
 
 fig, ax = plt.subplots(1, 1, figsize=(6, 3))
 
-x = brf_mitsuba["w"].values
-y = brf_mitsuba.values
-y_std = brf_mitsuba_std.values
+x = brf_toa_mitsuba["w"].values
+y = brf_toa_mitsuba.values
+y_std = brf_toa_mitsuba_std.values
 ymin = y - y_std * 2.0
 ymax = y + y_std * 2.0
 mask = (x >= wmin) & (x <= wmax)
 ax.step(x[mask], y[mask], where="mid", label="Mitsuba")
 ax.fill_between(x[mask], ymin[mask], ymax[mask], step="mid", alpha=0.25)
 
-x = brf_disort["w"].values
-y = brf_disort.values
+x = brf_toa_disort["w"].values
+y = brf_toa_disort.values
 mask = (x >= wmin) & (x <= wmax)
 ax.step(x[mask], y[mask], where="mid", label="DISORT")
 
@@ -209,9 +236,9 @@ plt.close()
 
 fig, ax = plt.subplots(1, 1, figsize=(6, 3))
 
-x = brf_mitsuba["w"].values
-brf = brf_mitsuba.values
-brf_std = brf_mitsuba_std.values
+x = brf_toa_mitsuba["w"].values
+brf = brf_toa_mitsuba.values
+brf_std = brf_toa_mitsuba_std.values
 y = brf_std / brf * 2.0 * 100.0
 mask = (x >= wmin) & (x <= wmax)
 ax.step(x[mask], y[mask], where="mid", label="Mitsuba")
@@ -219,6 +246,59 @@ ax.step(x[mask], y[mask], where="mid", label="Mitsuba")
 ax.set_xlabel("Wavelength [nm]")
 ax.set_ylabel("TOA BRF uncertainty [%]")
 # ax.set_ylim(-1, None)
+ax.legend()
+
+plt.show()
+plt.close()
+
+# %% [markdown]
+# ## BOA radiance plotting
+
+# %%
+# Extract irradiance
+irradiance_toa_mitsuba = result_mitsuba["radiance_toa"]["irradiance"].squeeze()
+
+# Extract Mitsuba radiance
+radiance_boa_mitsuba = result_mitsuba["radiance_toa"]["radiance"].squeeze()
+radiance_boa_mitsuba_std = np.sqrt(result_mitsuba["radiance_toa"]["radiance_var"].squeeze())
+
+# %%
+wmin, wmax = 600.0, 850.0
+# wmin, wmax = 600.0, 610.0
+# wmin, wmax = 750.0, 780.0
+
+fig, axs = plt.subplots(2, 1, height_ratios=[0.5, 1], sharex=True, layout="constrained")
+
+ax = axs[0]
+x = irradiance_toa_mitsuba["w"].values
+y = irradiance_toa_mitsuba.values
+
+mask = (x >= wmin) & (x <= wmax)
+ax.step(x[mask], y[mask], where="mid", label="Solar horizontal irradiance", c="C2")
+
+ax.set_ylabel("Irradiance\n[W/m²/nm]")
+ax.legend()
+
+ax = axs[1]
+x = radiance_boa_mitsuba["w"].values
+y = radiance_boa_mitsuba.values
+y_std = radiance_boa_mitsuba_std.values
+ymin = y - y_std * 2.0
+ymax = y + y_std * 2.0
+
+mask = (x >= wmin) & (x <= wmax)
+ax.step(x[mask], y[mask], where="mid", label="Mitsuba")
+ax.fill_between(x[mask], ymin[mask], ymax[mask], step="mid", alpha=0.25)
+
+x = radiance_toa_disort["w"].values
+y = radiance_toa_disort.values
+
+mask = (x >= wmin) & (x <= wmax)
+ax.step(x[mask], y[mask], where="mid", label="DISORT")
+
+ax.set_xlabel("Wavelength [nm]")
+ax.set_ylabel("TOA radiance\n[W/m²/sr/nm]")
+# ax.set_ylim(-0.01, 0.51)
 ax.legend()
 
 plt.show()
