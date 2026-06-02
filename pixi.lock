@@ -3078,7 +3078,7 @@ packages:
 - pypi: .
   name: eradiate-disort
   requires_dist:
-  - nanodisort==0.2.0.dev1
+  - nanodisort==0.2.*
   - xarray
   - eradiate
   requires_python: '>=3.9,<3.14'
