@@ -21,6 +21,7 @@ from eradiate.scenes.measure import (
     Measure,
     measure_factory,
 )
+from numpy.typing import ArrayLike
 
 if TYPE_CHECKING:
     from eradiate.radprops import ZGrid
@@ -210,7 +211,7 @@ class DisortMeasure(Measure):
 
     @classmethod
     def hplane(
-        cls, zeniths: np.typing.ArrayLike, azimuth: float | pint.Quantity, **kwargs
+        cls, zeniths: ArrayLike, azimuth: float | pint.Quantity, **kwargs
     ) -> DisortMeasure:
         """
         Construct using a hemisphere-plane viewing direction layout.
@@ -240,7 +241,7 @@ class DisortMeasure(Measure):
 
     @classmethod
     def aring(
-        cls, zenith: float | pint.Quantity, azimuths: np.typing.ArrayLike, **kwargs
+        cls, zenith: float | pint.Quantity, azimuths: ArrayLike, **kwargs
     ) -> DisortMeasure:
         """
         Construct using an azimuth-ring viewing direction layout.
@@ -267,9 +268,7 @@ class DisortMeasure(Measure):
         return cls(direction_layout=layout, **kwargs)
 
     @classmethod
-    def grid(
-        cls, zeniths: np.typing.ArrayLike, azimuths: np.typing.ArrayLike, **kwargs
-    ) -> DisortMeasure:
+    def grid(cls, zeniths: ArrayLike, azimuths: ArrayLike, **kwargs) -> DisortMeasure:
         """
         Construct using a gridded (Cartesian product) viewing direction layout.
 
