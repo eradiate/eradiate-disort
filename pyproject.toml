@@ -147,6 +147,7 @@ include = ["pyproject.toml", "src/**/*.py", "tests/**/*.py"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I"]
+exclude = ["tests/examples/example_*.py", "docs/examples/*.ipynb"]
 
 [tool.pytest.ini_options]
 minversion = "8.4"
