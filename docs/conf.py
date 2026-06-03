@@ -21,6 +21,7 @@ extensions = [
     "sphinx.ext.intersphinx",
     "sphinx.ext.napoleon",
     "sphinx.ext.viewcode",
+    "sphinx.ext.todo",
     # Third-party
     "myst_nb",
     "sphinx_copybutton",
@@ -41,12 +42,16 @@ intersphinx_mapping = {
     "numpy": ("https://numpy.org/doc/stable/", None),
     "xarray": ("https://docs.xarray.dev/en/stable/", None),
     "nanodisort": ("https://nanodisort.readthedocs.io/stable/", None),
+    "eradiate": ("https://eradiate.readthedocs.io/en/stable/", None),
 }
 
 # BibTeX configuration
 bibtex_bibfiles = ["references.bib"]
 bibtex_default_style = "plain"
 bibtex_reference_style = "author_year"
+
+# Todo options
+todo_include_todos = True
 
 # Autodoc settings
 autodoc_default_options = {

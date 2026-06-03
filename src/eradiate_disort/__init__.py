@@ -4,8 +4,10 @@
 
 from ._backend import DisortBackend
 from ._measurements import DisortMeasure
+from ._version import _version as __version__
 
 __all__ = [
     "DisortMeasure",
     "DisortBackend",
+    "__version__",
 ]
