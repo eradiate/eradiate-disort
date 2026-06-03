@@ -286,6 +286,14 @@ class DisortBackend:
             ssalb = np.minimum(ssalb, 1.0 - _dither)
 
             zgrid = atmosphere.geometry.zgrid
+
+            # Homogeneous atmospheres return scalar optical properties; broadcast
+            # them across all layers so the arrays match DISORT's nlyr.
+            n_layers = zgrid.n_layers
+            if tau_btt.shape[0] != n_layers:
+                tau_btt = np.broadcast_to(tau_btt, (n_layers,)).copy()
+            if ssalb.shape[0] != n_layers:
+                ssalb = np.broadcast_to(ssalb, (n_layers,)).copy()
         else:
             tau_btt = np.array([0.0])
             ssalb = np.array([0.0])
@@ -333,6 +341,11 @@ class DisortBackend:
         if buras_emde_arrays is not None:
             ds.mu_phase, ds.phase = buras_emde_arrays
 
+        # A flux-only solve (usrang=False) makes CDISORT overwrite numu with
+        # nstr internally; restore the user dimensions before re-assigning the
+        # angular arrays on subsequent spectral iterations.
+        ds.numu = len(run_ctx["mes_mu"])
+        ds.nphi = len(run_ctx["mes_phi"])
         ds.umu = run_ctx["mes_mu"]
         ds.phi = run_ctx["mes_phi"]
         ds.utau = merged_utau
