@@ -31,14 +31,19 @@ pytestmark = pytest.mark.order(1)
 # ------------------------------------------------------------------------------
 
 
+def plane_parallel(zgrid, toa_altitude) -> dict:
+    """Plane-parallel geometry dict for the given altitude grid and TOA."""
+    return {
+        "type": "plane_parallel",
+        "toa_altitude": toa_altitude,
+        "zgrid": zgrid,
+    }
+
+
 def make_exp(**overrides) -> AtmosphereExperiment:
     """Build a minimal valid DISORT experiment, overriding selected fields."""
     cfg = dict(
-        geometry={
-            "type": "plane_parallel",
-            "toa_altitude": 1.0 * ureg.km,
-            "zgrid": np.linspace(0, 1, 3) * ureg.km,
-        },
+        geometry=plane_parallel(np.linspace(0, 1, 3) * ureg.km, 1.0 * ureg.km),
         surface={"type": "lambertian", "reflectance": 0.3},
         atmosphere={"type": "homogeneous"},
         illumination={"type": "directional", "zenith": 30.0, "azimuth": 0.0},
@@ -72,11 +77,9 @@ class TestStateConfiguration:
     @pytest.mark.parametrize("n_levels", [2, 3, 11])
     def test_layer_count(self, mode_mono, n_levels):
         exp = make_exp(
-            geometry={
-                "type": "plane_parallel",
-                "toa_altitude": 1.0 * ureg.km,
-                "zgrid": np.linspace(0, 1, n_levels) * ureg.km,
-            }
+            geometry=plane_parallel(
+                np.linspace(0, 1, n_levels) * ureg.km, 1.0 * ureg.km
+            )
         )
         state, _, _ = configure_state(ed.DisortBackend(), exp)
         assert state.nlyr == n_levels - 1
@@ -168,11 +171,7 @@ class TestStateConfiguration:
 
     def test_utau_from_z_levels(self, mode_mono):
         exp = make_exp(
-            geometry={
-                "type": "plane_parallel",
-                "toa_altitude": 1.0 * ureg.km,
-                "zgrid": np.linspace(0, 1, 11) * ureg.km,
-            },
+            geometry=plane_parallel(np.linspace(0, 1, 11) * ureg.km, 1.0 * ureg.km),
             measures={"type": "disort", "z_levels": [0.0, 0.5, 1.0] * ureg.km},
         )
         state, _, _ = configure_state(ed.DisortBackend(), exp)
@@ -260,11 +259,7 @@ class TestRun:
         """
         srf = {"type": "uniform", "wmin": 600.0, "wmax": 610.0}
         exp = AtmosphereExperiment(
-            geometry={
-                "type": "plane_parallel",
-                "toa_altitude": 120.0 * ureg.km,
-                "zgrid": np.arange(0, 121, 1) * ureg.km,
-            },
+            geometry=plane_parallel(np.arange(0, 121, 1) * ureg.km, 120.0 * ureg.km),
             surface={"type": "lambertian", "reflectance": 0.5},
             atmosphere={
                 "type": "heterogeneous",
@@ -287,11 +282,7 @@ class TestRun:
         with a dtauc size mismatch (length-1 vs nlyr).
         """
         exp = make_exp(
-            geometry={
-                "type": "plane_parallel",
-                "toa_altitude": 100.0 * ureg.km,
-                "zgrid": np.linspace(0, 100, 11) * ureg.km,
-            },
+            geometry=plane_parallel(np.linspace(0, 100, 11) * ureg.km, 100.0 * ureg.km),
         )
         result = ed.DisortBackend().run(exp)
         ds = result["measure"].ds
@@ -300,11 +291,7 @@ class TestRun:
 
     def test_flux_matches_between_flux_only_and_radiance(self, mode_mono):
         """Enabling a radiance layout must not perturb the flux quantities."""
-        geometry = {
-            "type": "plane_parallel",
-            "toa_altitude": 100.0 * ureg.km,
-            "zgrid": np.linspace(0, 100, 11) * ureg.km,
-        }
+        geometry = plane_parallel(np.linspace(0, 100, 11) * ureg.km, 100.0 * ureg.km)
         common = dict(
             geometry=geometry,
             surface={"type": "lambertian", "reflectance": 0.3},
@@ -351,11 +338,7 @@ class TestRegression:
 
     def test_molecular_radiance(self, mode_mono, xarray_regression):
         exp = AtmosphereExperiment(
-            geometry={
-                "type": "plane_parallel",
-                "toa_altitude": 100.0 * ureg.km,
-                "zgrid": np.linspace(0, 100, 51) * ureg.km,
-            },
+            geometry=plane_parallel(np.linspace(0, 100, 51) * ureg.km, 100.0 * ureg.km),
             surface={"type": "lambertian", "reflectance": 0.2},
             atmosphere={"type": "molecular", "has_absorption": False},
             illumination={"type": "directional", "zenith": 30.0, "azimuth": 0.0},
@@ -374,11 +357,7 @@ class TestRegression:
 
     def test_homogeneous_flux(self, mode_mono, xarray_regression):
         exp = make_exp(
-            geometry={
-                "type": "plane_parallel",
-                "toa_altitude": 100.0 * ureg.km,
-                "zgrid": np.linspace(0, 100, 11) * ureg.km,
-            },
+            geometry=plane_parallel(np.linspace(0, 100, 11) * ureg.km, 100.0 * ureg.km),
             measures={"type": "disort", "srf": _SRF},
         )
         result = ed.DisortBackend(nstr=8, nmom=8).run(exp)
