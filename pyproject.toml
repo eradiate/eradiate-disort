@@ -98,10 +98,7 @@ kernel-clean = { cmd = "rm -rf ext/eradiate/ext/mitsuba/build/", cwd = "." }
 test = { cmd = "pytest", cwd = ".", env = { MPLBACKEND = "Agg", ERADIATE_TEST_MODE = "test" } }
 
 # Run benchmarks
-bench.cmd = """
-    pytest tests/benchmarks/ --benchmark-autosave \
-                             --benchmark-json=benchmarks/results.json -v
-"""
+bench.cmd = "pytest tests/benchmarks"
 bench.cwd = "."
 bench.env = { MPLBACKEND = "Agg", ERADIATE_TEST_MODE = "benchmark" }
 
@@ -152,4 +149,4 @@ exclude = ["tests/examples/example_*.py", "docs/examples/*.ipynb"]
 [tool.pytest.ini_options]
 minversion = "8.4"
 testpaths = ["tests"]
-addopts = "--ignore=tests/benchmarks --tb=short -v"
+addopts = "--ignore=tests/benchmarks --tb=short -v -p no:benchmark"
