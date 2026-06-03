@@ -1,12 +1,12 @@
 :hide-toc:
 :layout: landing
 
-eradiate-disort documentation
-=============================
+Eradiate DISORT backend
+=======================
 
 **Date**: |today| | **Version**: |version|
 
-A DISORT radiative transfer backend for the
+A DISORT backend for the
 `Eradiate radiative transfer model <https://eradiate.eu>`_\ , built on
 `nanodisort <https://github.com/eradiate/nanodisort>`_ Python bindings to
 CDISORT.
@@ -21,11 +21,23 @@ CDISORT.
 
         Read the user guide and design notes.
 
-    .. grid-item-card:: :iconify:`material-symbols:api height=1.5em` API
+    .. grid-item-card:: :iconify:`material-symbols:school height=1.5em` Examples
+        :link: examples/index
+        :link-type: doc
+
+        Learn to use the DISORT backend with practical examples.
+
+    .. grid-item-card:: :iconify:`material-symbols:description height=1.5em` API reference
         :link: api/eradiate_disort
         :link-type: doc
 
         Browse the API reference.
+
+    .. grid-item-card:: :iconify:`mdi:clock height=1.5em` Changelog
+        :link: changelog
+        :link-type: doc
+
+        Release history and migration notes.
 
     .. grid-item-card:: :iconify:`simple-icons:github height=1.5em` GitHub
         :link: https://github.com/eradiate/eradiate-disort/
@@ -52,3 +64,9 @@ CDISORT.
     :caption: API Reference
 
     api/eradiate_disort
+
+.. toctree::
+   :hidden:
+   :caption: About
+
+   changelog
