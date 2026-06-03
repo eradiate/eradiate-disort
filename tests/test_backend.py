@@ -42,13 +42,13 @@ def plane_parallel(zgrid, toa_altitude) -> dict:
 
 def make_exp(**overrides) -> AtmosphereExperiment:
     """Build a minimal valid DISORT experiment, overriding selected fields."""
-    cfg = dict(
-        geometry=plane_parallel(np.linspace(0, 1, 3) * ureg.km, 1.0 * ureg.km),
-        surface={"type": "lambertian", "reflectance": 0.3},
-        atmosphere={"type": "homogeneous"},
-        illumination={"type": "directional", "zenith": 30.0, "azimuth": 0.0},
-        measures={"type": "disort"},
-    )
+    cfg = {
+        "geometry": plane_parallel(np.linspace(0, 1, 3) * ureg.km, 1.0 * ureg.km),
+        "surface": {"type": "lambertian", "reflectance": 0.3},
+        "atmosphere": {"type": "homogeneous"},
+        "illumination": {"type": "directional", "zenith": 30.0, "azimuth": 0.0},
+        "measures": {"type": "disort"},
+    }
     cfg.update(overrides)
     return AtmosphereExperiment(**cfg)
 
@@ -292,12 +292,12 @@ class TestRun:
     def test_flux_matches_between_flux_only_and_radiance(self, mode_mono):
         """Enabling a radiance layout must not perturb the flux quantities."""
         geometry = plane_parallel(np.linspace(0, 100, 11) * ureg.km, 100.0 * ureg.km)
-        common = dict(
-            geometry=geometry,
-            surface={"type": "lambertian", "reflectance": 0.3},
-            atmosphere={"type": "homogeneous"},
-            illumination={"type": "directional", "zenith": 30.0, "azimuth": 0.0},
-        )
+        common = {
+            "geometry": geometry,
+            "surface": {"type": "lambertian", "reflectance": 0.3},
+            "atmosphere": {"type": "homogeneous"},
+            "illumination": {"type": "directional", "zenith": 30.0, "azimuth": 0.0},
+        }
         backend = ed.DisortBackend(nstr=8, nmom=8)
 
         exp_flux = AtmosphereExperiment(measures={"type": "disort"}, **common)
@@ -352,7 +352,7 @@ class TestRegression:
         )
         result = ed.DisortBackend(nstr=8, nmom=8).run(exp)
         xarray_regression.check(
-            result["measure"].ds, default_tolerance=dict(atol=1e-6, rtol=1e-5)
+            result["measure"].ds, default_tolerance={"atol": 1e-6, "rtol": 1e-5}
         )
 
     def test_homogeneous_flux(self, mode_mono, xarray_regression):
@@ -362,5 +362,5 @@ class TestRegression:
         )
         result = ed.DisortBackend(nstr=8, nmom=8).run(exp)
         xarray_regression.check(
-            result["measure"].ds, default_tolerance=dict(atol=1e-6, rtol=1e-5)
+            result["measure"].ds, default_tolerance={"atol": 1e-6, "rtol": 1e-5}
         )

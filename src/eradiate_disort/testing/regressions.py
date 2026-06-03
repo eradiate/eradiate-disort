@@ -71,11 +71,11 @@ class XarrayRegressionFixture:
             Result to compare.  Must be a DataArray or Dataset.
         default_tolerance:
             Tolerance applied to every array unless overridden by *tolerances*.
-            Example: ``dict(atol=1e-4, rtol=1e-4)``.
+            Example: ``{"atol": 1e-4, "rtol": 1e-4}``.
         tolerances:
             Per-array tolerance overrides, keyed by the array name as it
-            appears in the flattened dict (e.g. ``{"brf": dict(atol=1e-5),
-            "coord_vza": dict(atol=0)}``).
+            appears in the flattened dict (e.g. ``{"brf": {"atol": 1e-5},
+            "coord_vza": {"atol": 0}}``).
         """
         arrays = self._to_arrays(data_object)
         kwargs: dict = {}

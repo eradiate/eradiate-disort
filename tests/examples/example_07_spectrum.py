@@ -52,6 +52,7 @@ albedo_spectrum = InterpolatedSpectrum(
 # %% [markdown]
 # ## Experiment definition
 
+
 # %%
 def experiment(backend, wmin=600.0, wmax=610.0, tau_ref=0.0):
     srf = {"type": "uniform", "wmin": wmin, "wmax": wmax}
@@ -59,15 +60,16 @@ def experiment(backend, wmin=600.0, wmax=610.0, tau_ref=0.0):
     measures = (
         [
             {
-                "id": "radiance_toa", 
-                "type": "mdistant", 
-                **angles, 
+                "id": "radiance_toa",
+                "type": "mdistant",
+                **angles,
                 "srf": srf,
             },
             {
-                "id": "radiance_boa", 
-                "type": "mdistant", 
-                **angles, "srf": srf, 
+                "id": "radiance_boa",
+                "type": "mdistant",
+                **angles,
+                "srf": srf,
                 "target": [1, 1, 0],
             },
         ]  # Mitsuba backend: 2 measurements (TOA and BOA levels)
@@ -140,12 +142,16 @@ irradiance_toa_mitsuba = result_mitsuba["radiance_toa"]["irradiance"].squeeze()
 
 # Extract Mitsuba radiance
 radiance_toa_mitsuba = result_mitsuba["radiance_toa"]["radiance"].squeeze()
-radiance_toa_mitsuba_std = np.sqrt(result_mitsuba["radiance_toa"]["radiance_var"].squeeze())
+radiance_toa_mitsuba_std = np.sqrt(
+    result_mitsuba["radiance_toa"]["radiance_var"].squeeze()
+)
 
 # Compute Mitsuba BRF standard deviation
 brf_toa_mitsuba = result_mitsuba["radiance_toa"]["brf"].squeeze()
 x = np.pi / result_mitsuba["radiance_toa"]["irradiance"]
-brf_toa_mitsuba_std = np.sqrt((result_mitsuba["radiance_toa"]["radiance_var"] * x**2).squeeze())
+brf_toa_mitsuba_std = np.sqrt(
+    (result_mitsuba["radiance_toa"]["radiance_var"] * x**2).squeeze()
+)
 
 # Compute DISORT BRF
 radiance_toa_disort = result_disort["disort"]["uu"].isel(z=0).squeeze()
@@ -260,7 +266,9 @@ irradiance_toa_mitsuba = result_mitsuba["radiance_toa"]["irradiance"].squeeze()
 
 # Extract Mitsuba radiance
 radiance_boa_mitsuba = result_mitsuba["radiance_toa"]["radiance"].squeeze()
-radiance_boa_mitsuba_std = np.sqrt(result_mitsuba["radiance_toa"]["radiance_var"].squeeze())
+radiance_boa_mitsuba_std = np.sqrt(
+    result_mitsuba["radiance_toa"]["radiance_var"].squeeze()
+)
 
 # %%
 wmin, wmax = 600.0, 850.0
