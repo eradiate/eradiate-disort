@@ -240,3 +240,94 @@ class TestValidation:
         exp.surface.bsdf = RPVBSDF()
         with pytest.raises(TypeError):
             ed.DisortBackend().validate(exp)
+
+
+# ------------------------------------------------------------------------------
+#                       End-to-end runs (regression guards)
+# ------------------------------------------------------------------------------
+
+_FLUX_FIELDS = ["rfldir", "rfldn", "flup", "dfdt", "uavg", "uavgdn", "uavgup", "uavgso"]
+
+
+class TestRun:
+    def test_flux_only_ckd_runs(self, mode_ckd):
+        """
+        Flux-only measure over a multi-bin CKD grid.
+
+        Reproduces the example_09_fluxes.py failure: a usrang=False solve
+        makes CDISORT overwrite numu, which crashed the second spectral
+        iteration before the fix.
+        """
+        srf = {"type": "uniform", "wmin": 600.0, "wmax": 610.0}
+        exp = AtmosphereExperiment(
+            geometry={
+                "type": "plane_parallel",
+                "toa_altitude": 120.0 * ureg.km,
+                "zgrid": np.arange(0, 121, 1) * ureg.km,
+            },
+            surface={"type": "lambertian", "reflectance": 0.5},
+            atmosphere={
+                "type": "heterogeneous",
+                "molecular_atmosphere": {"absorption_data": "mycena"},
+            },
+            illumination={"type": "directional", "zenith": 30.0, "azimuth": 0.0},
+            measures={"type": "disort", "srf": srf},
+        )
+        result = ed.DisortBackend().run(exp)
+        ds = result["measure"].ds
+        assert set(_FLUX_FIELDS) <= set(ds.data_vars)
+        assert set(ds["flup"].dims) == {"w", "z"}
+        assert np.all(np.isfinite(ds["flup"].values))
+
+    def test_homogeneous_multilayer_runs(self, mode_mono):
+        """
+        Homogeneous atmosphere on a multi-layer grid.
+
+        Guards the scalar-optical-property broadcast fix: previously crashed
+        with a dtauc size mismatch (length-1 vs nlyr).
+        """
+        exp = make_exp(
+            geometry={
+                "type": "plane_parallel",
+                "toa_altitude": 100.0 * ureg.km,
+                "zgrid": np.linspace(0, 100, 11) * ureg.km,
+            },
+        )
+        result = ed.DisortBackend().run(exp)
+        ds = result["measure"].ds
+        assert set(_FLUX_FIELDS) <= set(ds.data_vars)
+        assert np.all(np.isfinite(ds["flup"].values))
+
+    def test_flux_matches_between_flux_only_and_radiance(self, mode_mono):
+        """Enabling a radiance layout must not perturb the flux quantities."""
+        geometry = {
+            "type": "plane_parallel",
+            "toa_altitude": 100.0 * ureg.km,
+            "zgrid": np.linspace(0, 100, 11) * ureg.km,
+        }
+        common = dict(
+            geometry=geometry,
+            surface={"type": "lambertian", "reflectance": 0.3},
+            atmosphere={"type": "homogeneous"},
+            illumination={"type": "directional", "zenith": 30.0, "azimuth": 0.0},
+        )
+        backend = ed.DisortBackend(nstr=8, nmom=8)
+
+        exp_flux = AtmosphereExperiment(measures={"type": "disort"}, **common)
+        flux = backend.run(exp_flux)["measure"].ds
+
+        exp_rad = AtmosphereExperiment(
+            measures={
+                "type": "disort",
+                "construct": "hplane",
+                "azimuth": 0.0,
+                "zeniths": [0.0, 30.0],
+            },
+            **common,
+        )
+        rad = ed.DisortBackend(nstr=8, nmom=8).run(exp_rad)["measure"].ds
+
+        for field in ("rfldir", "rfldn", "flup"):
+            np.testing.assert_allclose(
+                flux[field].values, rad[field].values, rtol=1e-6, atol=1e-9
+            )
