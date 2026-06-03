@@ -2,10 +2,10 @@
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-from ._backend import EradiateDisortBackend
+from ._backend import DisortBackend
 from ._measurements import DisortMeasure
 
 __all__ = [
     "DisortMeasure",
-    "EradiateDisortBackend",
+    "DisortBackend",
 ]

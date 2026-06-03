@@ -98,7 +98,7 @@ for case_id, kwargs in CASES.items():
     result.mitsuba = eradiate.run(exp, spp=SPP)["radiance"].squeeze()
 
     exp = full_atmo(**kwargs, backend="disort")
-    backend = ed.EradiateDisortBackend(intensity_correction="buras_emde")
+    backend = ed.DisortBackend(intensity_correction="buras_emde")
     result.disort = disort_reshape_pplane(backend.run(exp).sel(z=1e5))
 
     results[case_id] = result

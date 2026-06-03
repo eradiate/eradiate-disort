@@ -91,7 +91,7 @@ for case_id, kwargs in _cases.items():
     result.mitsuba = eradiate.run(exp, spp=SPP)["radiance"].squeeze()
 
     exp = cases.molecular(**kwargs, backend="disort")
-    backend = ed.EradiateDisortBackend()
+    backend = ed.DisortBackend()
     result.disort = disort_reshape_pplane(backend.run(exp).sel(z=1e5))
 
     results[case_id] = result

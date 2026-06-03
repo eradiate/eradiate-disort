@@ -60,7 +60,7 @@ for phase in PHASES:
     result.mitsuba = eradiate.run(exp, spp=SPP)["radiance"].squeeze()
 
     exp = cases.single_layer(30.0, phase, backend="disort")
-    backend = ed.EradiateDisortBackend()
+    backend = ed.DisortBackend()
     result.disort = disort_reshape_pplane(backend.run(exp).sel(z=1000.0))
 
     results[phase] = result
@@ -120,7 +120,7 @@ for phase in ["rayleigh"]:
         cases.single_layer(30.0, phase, backend="disort"),
         measures=cases._grid_measure(backend="disort"),
     )
-    backend = ed.EradiateDisortBackend()
+    backend = ed.DisortBackend()
     result.disort = backend.run(exp)["measure/uu"].sel(z=1000.0).squeeze().sortby("vza")
 
     results[phase] = result

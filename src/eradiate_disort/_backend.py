@@ -38,7 +38,7 @@ logger = logging.getLogger(__name__)
 
 
 @attrs.define
-class EradiateDisortBackend:
+class DisortBackend:
     """
     Eradiate DISORT backend.
 
@@ -65,6 +65,10 @@ class EradiateDisortBackend:
         moments and is always available. ``"buras_emde"`` additionally requires
         the actual phase function values and is more accurate for sharply peaked
         phase functions.
+
+    See Also
+    --------
+    nanodisort.DisortState
     """
 
     nstr: int = attrs.field(default=16, repr=False)

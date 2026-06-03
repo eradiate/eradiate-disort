@@ -57,7 +57,7 @@ exp = cases.no_atmo(30.0, backend="mitsuba")
 result.mitsuba = eradiate.run(exp, spp=SPP)["radiance"].squeeze()
 
 exp = cases.no_atmo(30.0, backend="disort")
-backend = ed.EradiateDisortBackend()
+backend = ed.DisortBackend()
 result.disort = disort_reshape_pplane(backend.run(exp).sel(z=1.0))
 
 # %%
