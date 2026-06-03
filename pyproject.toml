@@ -95,7 +95,9 @@ kernel-clean = { cmd = "rm -rf ext/eradiate/ext/mitsuba/build/", cwd = "." }
 
 # Wrap pytest with appropriate environment tuning to enforce a non-interactive
 # backend and route test mode-dependent features to the 'test' mode
-test = { cmd = "pytest", cwd = ".", env = { MPLBACKEND = "Agg", ERADIATE_TEST_MODE = "test" } }
+test.cmd = "pytest"
+test.cwd = "."
+test.env = { MPLBACKEND = "Agg", ERADIATE_TEST_MODE = "test" }
 
 # Run benchmarks
 bench.cmd = "pytest tests/benchmarks"
