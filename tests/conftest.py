@@ -1,6 +1,21 @@
+from pathlib import Path
+
+import pytest
+
 from eradiate_disort.testing.fixtures import *  # noqa: F403
 from eradiate_disort.testing.plotting import er_plt  # noqa: F401
 from eradiate_disort.testing.regressions import xarray_regression  # noqa: F401
+
+
+@pytest.fixture
+def original_datadir(request):
+    """Store regression references under ``tests/data/regression_references``."""
+    return (
+        Path(__file__).parent
+        / "data"
+        / "regression_references"
+        / Path(request.path).stem
+    )
 
 
 def pytest_addoption(parser):
