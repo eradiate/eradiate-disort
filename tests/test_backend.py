@@ -331,3 +331,57 @@ class TestRun:
             np.testing.assert_allclose(
                 flux[field].values, rad[field].values, rtol=1e-6, atol=1e-9
             )
+
+
+# ------------------------------------------------------------------------------
+#                           Numerical regressions
+# ------------------------------------------------------------------------------
+
+_SRF = {"type": "delta", "wavelengths": [550.0]}
+
+
+class TestRegression:
+    """
+    Pin numerical outputs to catch silent drift.
+
+    Cases are kept small (Rayleigh-only atmosphere, single wavelength, few
+    viewing angles) for fast, deterministic, compact reference files.
+    Regenerate with ``pixi run test tests/test_backend.py --force-regen``.
+    """
+
+    def test_molecular_radiance(self, mode_mono, xarray_regression):
+        exp = AtmosphereExperiment(
+            geometry={
+                "type": "plane_parallel",
+                "toa_altitude": 100.0 * ureg.km,
+                "zgrid": np.linspace(0, 100, 51) * ureg.km,
+            },
+            surface={"type": "lambertian", "reflectance": 0.2},
+            atmosphere={"type": "molecular", "has_absorption": False},
+            illumination={"type": "directional", "zenith": 30.0, "azimuth": 0.0},
+            measures={
+                "type": "disort",
+                "construct": "hplane",
+                "azimuth": 0.0,
+                "zeniths": [-60.0, -30.0, 0.0, 30.0, 60.0],
+                "srf": _SRF,
+            },
+        )
+        result = ed.DisortBackend(nstr=8, nmom=8).run(exp)
+        xarray_regression.check(
+            result["measure"].ds, default_tolerance=dict(atol=1e-6, rtol=1e-5)
+        )
+
+    def test_homogeneous_flux(self, mode_mono, xarray_regression):
+        exp = make_exp(
+            geometry={
+                "type": "plane_parallel",
+                "toa_altitude": 100.0 * ureg.km,
+                "zgrid": np.linspace(0, 100, 11) * ureg.km,
+            },
+            measures={"type": "disort", "srf": _SRF},
+        )
+        result = ed.DisortBackend(nstr=8, nmom=8).run(exp)
+        xarray_regression.check(
+            result["measure"].ds, default_tolerance=dict(atol=1e-6, rtol=1e-5)
+        )
