@@ -5,7 +5,7 @@ description = "Eradiate DISORT backend"
 readme = "README.md"
 authors = [{ name = "Vincent Leroy", email = "vincent.leroy@rayference.eu" }]
 requires-python = ">=3.9,<3.14"
-dependencies = ["nanodisort==0.2.*", "xarray", "eradiate"]
+dependencies = ["nanodisort==0.2.*", "xarray", "eradiate==1.2.0rc3"]
 
 [dependency-groups]
 test = [
