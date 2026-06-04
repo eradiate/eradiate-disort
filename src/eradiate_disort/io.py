@@ -25,8 +25,8 @@ _METADATA: dict[str, dict] = {
         "units": "deg",
     },
     "vaa": {
-        "long_name": "azimuth zenith angle",
-        "standard_name": "azimuth_zenith_angle",
+        "long_name": "viewing azimuth angle",
+        "standard_name": "viewing_azimuth_angle",
         "units": "deg",
     },
 }
