@@ -1,11 +1,10 @@
 User guide
 ==========
 
-.. note::
-
-   Outline draft. Each section below is a stub to be filled with prose.
-   Runnable walkthroughs live in the :doc:`Examples <../examples/index>`
-   section; this guide covers concepts and how-to. Audience: Eradiate users.
+This document introduces the Eradiate DISORT backend in general terms for users,
+covering the most important concepts. The :doc:`../examples/index` section
+provides a progressive series of runnable walkthrough tutorials. For a
+developer-oriented introduction, see the :doc:`../dev/index`.
 
 Overview
 --------
@@ -116,7 +115,7 @@ standard molecular atmosphere at 550 nm, with a solar zenith angle of 30°:
     result = backend.run(exp)
 
     # TOA radiance along the principal plane
-    radiance = result["measure/uu"].sel(z=100_000.0)
+    radiance = result["measure/uu"].sel(z=100e3)
 
 The :meth:`DisortBackend.run() <eradiate_disort.DisortBackend.run>` method
 returns an :class:`xarray.DataTree` with one subtree per measure, keyed by the
