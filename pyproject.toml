@@ -37,6 +37,7 @@ dev = [
   { include-group = "test" },
   { include-group = "docs" },
 ]
+rtd = ["eradiate[kernel]==1.2.0rc3", { include-group = "docs" }]
 
 [build-system]
 requires = ["hatchling"]
@@ -130,8 +131,8 @@ docs-serve = { cmd = "sphinx-autobuild docs docs/_build/html", cwd = "." }
 
 # Export locked dependencies for Read The Docs setup
 docs-lock.cmd = """
-    uv pip compile --upgrade --quiet --no-progress \
-        --python-version 3.12 --group docs \
+    uv pip compile --upgrade --quiet --no-progress --prerelease=allow \
+        --python-version 3.12 --group rtd \
         --output-file docs/requirements.txt pyproject.toml
 """
 docs-lock.cwd = "."
