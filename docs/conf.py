@@ -27,6 +27,7 @@ extensions = [
     "sphinx_design",
     "sphinx_iconify",
     "autodocsumm",
+    "sphinxcontrib.bibtex",
 ]
 
 # Templates and static files
@@ -41,6 +42,11 @@ intersphinx_mapping = {
     "xarray": ("https://docs.xarray.dev/en/stable/", None),
     "nanodisort": ("https://nanodisort.readthedocs.io/stable/", None),
 }
+
+# BibTeX configuration
+bibtex_bibfiles = ["references.bib"]
+bibtex_default_style = "plain"
+bibtex_reference_style = "author_year"
 
 # Autodoc settings
 autodoc_default_options = {

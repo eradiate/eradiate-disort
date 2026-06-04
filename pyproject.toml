@@ -24,6 +24,7 @@ docs = [
   "sphinx-copybutton>=0.5.2",
   "sphinx-design",
   "sphinx-iconify",
+  "sphinxcontrib-bibtex",
 ]
 lint = ["ruff", "ty"]
 dev = [

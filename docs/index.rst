@@ -70,3 +70,4 @@ CDISORT.
    :caption: About
 
    changelog
+   references

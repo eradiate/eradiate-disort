@@ -14,3 +14,12 @@ repos:
     hooks:
       - id: nbstripout
         exclude: ^docs/examples/
+  - repo: https://github.com/FlamingTempura/bibtex-tidy
+    rev: v1.14.0
+    hooks:
+    - id: bibtex-tidy
+      args:
+      - --space=2
+      - --sort
+      - --curly
+      - --duplicates
