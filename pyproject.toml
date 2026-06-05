@@ -26,7 +26,7 @@ docs = [
   "sphinx-iconify",
   "sphinxcontrib-bibtex",
 ]
-lint = ["ruff", "ty"]
+lint = ["ruff", "ty", "reuse"]
 dev = [
   "ipykernel",
   "ipywidgets",
@@ -140,6 +140,7 @@ docs-lock.cwd = "."
 # Linting
 lint = { cmd = "ruff check", cwd = "." }
 lint-ext = { cmd = "ruff check --extend-select B,C4,SIM,PIE,UP,PERF,NPY,RUF", cwd = "." }
+lint-reuse = { cmd = "reuse lint", cwd = "." }
 
 # --- Tool configuration ---
 
