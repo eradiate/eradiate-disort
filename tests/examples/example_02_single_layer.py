@@ -8,9 +8,9 @@
 #       extension: .py
 #       format_name: percent
 #       format_version: '1.3'
-#       jupytext_version: 1.19.2
+#       jupytext_version: 1.19.3
 #   kernelspec:
-#     display_name: eradiate-disort (pixi dev)
+#     display_name: eradiate-disort (pixi)
 #     language: python
 #     name: eradiate-disort
 # ---
@@ -18,7 +18,8 @@
 # %% [markdown]
 # # Single layer testing
 #
-# This notebook tests the backend setup for a single layer.
+# This notebook tests the backend setup for a single homogeneous layer with an
+# isotropic and a Rayleigh phase function.
 
 # %% tags=["remove-cell"]
 # Documentation-specific setup, hidden from notebook output
@@ -33,18 +34,27 @@ sns.set_theme(style="ticks")
 # %%
 import eradiate
 import matplotlib.pyplot as plt
+import numpy as np
+from eradiate.experiments import AtmosphereExperiment
+from eradiate.units import unit_registry as ureg
+from eradiate.xarray import unstack_mdistant_grid
 
 import eradiate_disort as ed
-from eradiate_disort.testing import TestMode, cases
-from eradiate_disort.testing.util import Result, disort_reshape_pplane
+from eradiate_disort.util import disort_reshape_pplane
 
 eradiate.set_mode("ckd")
 
-SPP = 1_000
+# Experiment parameters
+SZA = 30.0
 PHASES = ["isotropic", "rayleigh"]
+ZENITHS = np.arange(-75.0, 76.0, 1.0)
+SRF = {"type": "delta", "wavelengths": [550.0]}
+SPP = 1_000
 
 # %% tags=["remove-cell"]
 # Dev-specific setup, hidden from notebook output
+
+from eradiate_disort.testing import TestMode
 
 plt = TestMode.plt()
 _base_spp = TestMode.spp(tutorial=1_000, test=10_000)
@@ -54,16 +64,47 @@ SPP = _base_spp // 16 if eradiate.get_mode().is_ckd else _base_spp
 results = {}
 
 for phase in PHASES:
-    result = Result()
+    # Mitsuba backend
+    exp = AtmosphereExperiment(
+        geometry={
+            "type": "plane_parallel",
+            "toa_altitude": 1.0 * ureg.km,
+            "zgrid": np.linspace(0, 1, 2) * ureg.km,
+        },
+        surface={"type": "lambertian", "reflectance": 0.0},
+        atmosphere={"type": "homogeneous", "phase": {"type": phase}},
+        illumination={"type": "directional", "zenith": SZA, "azimuth": 0.0},
+        measures={
+            "type": "mdistant",
+            "construct": "hplane",
+            "azimuth": 0.0,
+            "zeniths": ZENITHS,
+            "srf": SRF,
+        },
+    )
+    mitsuba = eradiate.run(exp, spp=SPP)["radiance"].squeeze()
 
-    exp = cases.single_layer(30.0, phase, backend="mitsuba")
-    result.mitsuba = eradiate.run(exp, spp=SPP)["radiance"].squeeze()
+    # DISORT backend
+    exp = AtmosphereExperiment(
+        geometry={
+            "type": "plane_parallel",
+            "toa_altitude": 1.0 * ureg.km,
+            "zgrid": np.linspace(0, 1, 2) * ureg.km,
+        },
+        surface={"type": "lambertian", "reflectance": 0.0},
+        atmosphere={"type": "homogeneous", "phase": {"type": phase}},
+        illumination={"type": "directional", "zenith": SZA, "azimuth": 0.0},
+        measures={
+            "type": "disort",
+            "construct": "hplane",
+            "azimuth": 0.0,
+            "zeniths": ZENITHS,
+            "srf": SRF,
+        },
+    )
+    disort = disort_reshape_pplane(ed.DisortBackend().run(exp).sel(z=1000.0))
 
-    exp = cases.single_layer(30.0, phase, backend="disort")
-    backend = ed.DisortBackend()
-    result.disort = disort_reshape_pplane(backend.run(exp).sel(z=1000.0))
-
-    results[phase] = result
+    results[phase] = {"mitsuba": mitsuba, "disort": disort}
 
 
 # %%
@@ -75,13 +116,13 @@ def plot(results):
         result = results[phase]
 
         ax.plot(
-            result.mitsuba["vza"],
-            result.mitsuba,
+            result["mitsuba"]["vza"],
+            result["mitsuba"],
             label="Mitsuba" if k == 0 else None,
         )
         ax.plot(
-            result.disort["vza"],
-            result.disort,
+            result["disort"]["vza"],
+            result["disort"],
             label="CDISORT" if k == 0 else None,
             ls="--",
         )
@@ -99,50 +140,78 @@ plot(results)
 plt.show()
 plt.close()
 
-# %%
-import attrs
-from eradiate.xarray import unstack_mdistant_grid
+# %% [markdown]
+# ## Full viewing grid
+#
+# The comparison is repeated over a full azimuth/zenith grid for the Rayleigh
+# phase function.
 
-results = {}
+# %%
+results_grid = {}
 
 for phase in ["rayleigh"]:
-    result = Result()
-
-    exp = attrs.evolve(
-        cases.single_layer(30.0, phase, backend="mitsuba"),
-        measures=cases._grid_measure(backend="mitsuba"),
+    # Mitsuba backend
+    exp = AtmosphereExperiment(
+        geometry={
+            "type": "plane_parallel",
+            "toa_altitude": 1.0 * ureg.km,
+            "zgrid": np.linspace(0, 1, 2) * ureg.km,
+        },
+        surface={"type": "lambertian", "reflectance": 0.0},
+        atmosphere={"type": "homogeneous", "phase": {"type": phase}},
+        illumination={"type": "directional", "zenith": SZA, "azimuth": 0.0},
+        measures={
+            "type": "mdistant",
+            "construct": "grid",
+            "azimuths": np.arange(0, 360, 10),
+            "zeniths": np.arange(0, 75.1, 5),
+        },
     )
-    result.mitsuba = unstack_mdistant_grid(
-        eradiate.run(exp, spp=SPP)["radiance"]
-    ).squeeze()
+    mitsuba = unstack_mdistant_grid(eradiate.run(exp, spp=SPP)["radiance"]).squeeze()
 
-    exp = attrs.evolve(
-        cases.single_layer(30.0, phase, backend="disort"),
-        measures=cases._grid_measure(backend="disort"),
+    # DISORT backend
+    exp = AtmosphereExperiment(
+        geometry={
+            "type": "plane_parallel",
+            "toa_altitude": 1.0 * ureg.km,
+            "zgrid": np.linspace(0, 1, 2) * ureg.km,
+        },
+        surface={"type": "lambertian", "reflectance": 0.0},
+        atmosphere={"type": "homogeneous", "phase": {"type": phase}},
+        illumination={"type": "directional", "zenith": SZA, "azimuth": 0.0},
+        measures={
+            "type": "disort",
+            "construct": "grid",
+            "azimuths": np.arange(0, 360, 10),
+            "zeniths": np.arange(0, 75.1, 5),
+        },
     )
-    backend = ed.DisortBackend()
-    result.disort = backend.run(exp)["measure/uu"].sel(z=1000.0).squeeze().sortby("vza")
+    disort = (
+        ed.DisortBackend().run(exp)["measure/uu"].sel(z=1000.0).squeeze().sortby("vza")
+    )
 
-    results[phase] = result
+    results_grid[phase] = {"mitsuba": mitsuba, "disort": disort}
 
 
 # %%
 def plot(results):
     fig, axs = plt.subplots(1, 3, figsize=(12, 3.5), layout="constrained", sharey=True)
 
+    mitsuba = results["rayleigh"]["mitsuba"]
+    disort = results["rayleigh"]["disort"]
+
     ax = axs[0]
-    results["rayleigh"].mitsuba.plot.imshow(ax=ax, cbar_kwargs={"label": None})
+    mitsuba.plot.imshow(ax=ax, cbar_kwargs={"label": None})
     ax.set_title("Mitsuba")
 
     ax = axs[1]
-    results["rayleigh"].disort.plot.imshow(ax=ax, cbar_kwargs={"label": None})
+    disort.plot.imshow(ax=ax, cbar_kwargs={"label": None})
     ax.set_title("CDISORT")
     ax.set_ylabel(None)
 
     ax = axs[2]
     (
-        (result.disort.assign_coords({k: result.mitsuba[k] for k in ["vza", "vaa"]}))
-        - result.mitsuba
+        disort.assign_coords({k: mitsuba[k] for k in ["vza", "vaa"]}) - mitsuba
     ).plot.imshow(ax=ax)
     ax.set_title("Difference")
     ax.set_ylabel(None)
@@ -150,6 +219,6 @@ def plot(results):
     return fig, axs
 
 
-plot(results)
+plot(results_grid)
 plt.show()
 plt.close()

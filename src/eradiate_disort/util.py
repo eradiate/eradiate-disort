@@ -4,14 +4,7 @@
 
 from __future__ import annotations
 
-import attrs
 import xarray as xr
-
-
-@attrs.define
-class Result:
-    disort: xr.DataArray | None = None
-    mitsuba: xr.DataArray | None = None
 
 
 def disort_reshape_pplane(dt: xr.DataTree) -> xr.DataArray:
