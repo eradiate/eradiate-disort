@@ -94,13 +94,60 @@ Documentation
 Conventions and tooling
 -----------------------
 
-.. todo::
+Code style
+^^^^^^^^^^
 
-   - Ruff (rules, format), Numpydoc docstrings, type hints.
-   - Private modules underscore-prefixed; public API re-exported from
-     ``__init__.py``.
-   - SPDX headers / REUSE compliance.
-   - pre-commit hooks (ruff, taplo, nbstripout).
+Python code is formatted linted with `Ruff <https://docs.astral.sh/ruff/>`__. Activate pre-commit hooks to enforce formatting and the basic linting rules.
+
+The basic lint rule set is
+intentionally small and can be applied with ``pixi run lint``. A more extensive rule set is available and should be applied to detect issues early during a refactoring pass, prior to opening a PR or merging a branch into ``main``. The extended rule set is applied by the ``pixi run lint-ext`` task.
+
+Public functions, classes and methods carry `Numpydoc
+<https://numpydoc.readthedocs.io/en/latest/format.html>`__-style docstrings, and
+all signatures are type-hinted. In-code documentation is the primary
+documentation surface; keep it comprehensive and current rather than deferring
+explanation to external prose.
+
+Module layout and public API
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Implementation modules are private and underscore-prefixed (*e.g.* ``_backend.py``,
+``_measurements.py``, ``_phase.py``, ``_pipeline.py``). The supported public API
+is the small surface re-exported from ``eradiate_disort/__init__.py``. Treat
+anything not re-exported there as internal and subject to change.
+
+In tests and examples, when relevant, import from the package root rather than reaching into private modules.
+
+Licensing and REUSE
+^^^^^^^^^^^^^^^^^^^
+
+The project is licensed under ``GPL-3.0-or-later`` (consistent with
+``nanodisort`` and CDISORT) and is `REUSE <https://reuse.software/>`__-compliant.
+Every source file under ``src/`` begins with an SPDX header::
+
+    # SPDX-FileCopyrightText: 2026 Rayference
+    #
+    # SPDX-License-Identifier: GPL-3.0-or-later
+
+Files that do not carry their own header inherit copyright and licence from the
+``**`` default annotation in ``REUSE.toml``, and the license texts live under
+``LICENSES/``. When adding a new source file, copy the SPDX header above; when
+adding a file of a different licence, register it in ``REUSE.toml`` and drop the
+corresponding text in ``LICENSES/``. Verify compliance with
+``pixi run lint-reuse``.
+
+pre-commit
+^^^^^^^^^^
+
+Formatting and lint conventions are enforced automatically through pre-commit
+hooks, defined in ``.pre-commit-config.yaml``. Install the hooks once with
+`pre-commit <https://pre-commit.com/>`__ or `prek <https://prek.j178.dev/>`__.
+If underscore, ``pre-commit run --all-files`` will run them across the entire
+project.
+
+Because the hooks run on commit, do not rely on an agent's or your own claim
+that a file is formatted or lint-clean — let pre-commit and CI be the source of
+truth.
 
 Releasing
 ---------
