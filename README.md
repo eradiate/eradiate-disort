@@ -34,7 +34,7 @@ installation details, the API reference and worked examples.
 - A working Eradiate installation.
 
 ```bash
-pip install eradiate-disort
+pip install eradiate[kernel,recommended] eradiate-disort
 ```
 
 ## Usage

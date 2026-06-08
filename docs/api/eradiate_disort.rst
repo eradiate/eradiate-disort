@@ -1,5 +1,5 @@
-eradiate\_disort
-================
+``eradiate_disort``
+===================
 
 .. automodule:: eradiate_disort
     :autosummary:
