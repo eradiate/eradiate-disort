@@ -38,6 +38,12 @@ Using the DISORT backend is recommended if:
     which it depends, without this implying additional licensing constraints on
     Eradiate.
 
+Requirements
+------------
+
+This package requires Python (3.10 or later), as well as a compatible Eradiate
+version (1.2.0 or later).
+
 Installation
 ------------
 
