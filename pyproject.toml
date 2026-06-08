@@ -4,15 +4,30 @@ version = "0.1.0"
 description = "Eradiate DISORT backend"
 readme = "README.md"
 authors = [{ name = "Vincent Leroy", email = "vincent.leroy@rayference.eu" }]
-requires-python = ">=3.9,<3.14"
-dependencies = ["nanodisort==0.2.*", "xarray", "eradiate==1.2.0rc3"]
+requires-python = ">=3.10,<3.14"
+dependencies = ["nanodisort==0.2.*", "xarray>=2024.11", "eradiate==1.2.0rc5"]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Intended Audience :: Science/Research",
+  "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Topic :: Scientific/Engineering :: Atmospheric Science",
+  "Topic :: Scientific/Engineering :: Physics",
+]
 
 [dependency-groups]
+# Dev groups
 test = [
   "pytest>=8.4",
   "pytest-regressions>=2.10",
   "pytest-benchmark>=5.2",
   "pytest-order>=1.4",
+  "seaborn",
 ]
 docs = [
   "autodocsumm>=0.2.14",
@@ -32,12 +47,17 @@ dev = [
   "ipywidgets",
   "jupyterlab",
   "ruff>=0.14.9",
-  "seaborn",
   "uv",
   { include-group = "test" },
   { include-group = "docs" },
 ]
-rtd = ["eradiate[kernel]==1.2.0rc3", { include-group = "docs" }]
+# CI groups
+kernel = [
+  "eradiate==1.2.0rc5",
+  "eradiate-mitsuba==0.5.0rc2",
+] # force PyPI kernel package
+rtd = [{ include-group = "kernel" }, { include-group = "docs" }] # Read The Docs
+gha = [{ include-group = "kernel" }, { include-group = "test" }] # GH Actions
 
 [build-system]
 requires = ["hatchling"]
@@ -49,11 +69,6 @@ build-backend = "hatchling.build"
 channels = ["conda-forge"]
 platforms = ["linux-64", "osx-64", "osx-arm64"]
 
-[tool.pixi.dependencies]
-python = "3.12.*"
-cmake = "*"
-pixi-pycharm = ">=0.0.11,<0.0.12"
-
 [tool.pixi.target.osx-64.pypi-dependencies]
 numba = "<0.63"
 
@@ -62,25 +77,52 @@ netcdf4 = "*"
 
 [tool.pixi.pypi-dependencies]
 eradiate-disort = { path = ".", editable = true }
-nanodisort = { path = "ext/nanodisort", editable = true }
-eradiate = { path = "ext/eradiate", editable = true }
 
-[tool.pixi.activation]
+[tool.pixi.feature.dev.dependencies]
+cmake = "*"
+pixi-pycharm = ">=0.0.11,<0.0.12"
+
+[tool.pixi.feature.dev.pypi-dependencies]
+nanodisort = { path = "ext/nanodisort", editable = true }
+eradiate = { path = "ext/eradiate", editable = true, extras = ["recommended"] }
+
+[tool.pixi.feature.py310.dependencies]
+python = "3.10.*"
+
+[tool.pixi.feature.py311.dependencies]
+python = "3.11.*"
+
+[tool.pixi.feature.py312.dependencies]
+python = "3.12.*"
+
+[tool.pixi.feature.py313.dependencies]
+python = "3.13.*"
+
+[tool.pixi.environments]
+# Development environments
+default = { features = ["py312", "test", "docs", "dev"], solve-group = "default" }
+
+# CI environments
+ghapy310 = { features = ["py310", "kernel", "test"] }
+ghapy311 = { features = ["py311", "kernel", "test"] }
+ghapy312 = { features = ["py312", "kernel", "test"] }
+ghapy313 = { features = ["py313", "kernel", "test"] }
+
+[tool.pixi.feature.test.tasks]
+# Wrap pytest with appropriate environment tuning to enforce a non-interactive
+# backend and route test mode-dependent features to the 'test' mode
+test.cmd = "pytest"
+test.cwd = "."
+test.env = { MPLBACKEND = "Agg", ERADIATE_TEST_MODE = "test" }
+
+[tool.pixi.feature.dev.activation]
 # set-macos-deployment-target.sh pins MACOSX_DEPLOYMENT_TARGET to the interpreter's
 # own sysconfig value so locally-built wheel tags match uv's acceptance ceiling
 # (avoids scikit-build-core tagging with the running macOS version). No-op off macOS.
 scripts = ["scripts/set-macos-deployment-target.sh", "ext/eradiate/setpath.sh"]
 env = { ERADIATE_PATH = "$PIXI_PROJECT_ROOT/tests/data" }
 
-[tool.pixi.feature.dev.pypi-dependencies]
-eradiate = { path = "ext/eradiate", editable = true, extras = ["recommended"] }
-
-[tool.pixi.environments]
-default = { features = ["test"], solve-group = "default" }
-dev = { features = ["test", "docs", "dev"], solve-group = "default" }
-docs = { features = ["docs"], solve-group = "default" }
-
-[tool.pixi.tasks]
+[tool.pixi.feature.dev.tasks]
 # Mitsuba kernel build tasks (mirrors ext/eradiate pixi tasks; Mitsuba lives at ext/eradiate/ext/mitsuba)
 kernel-configure.cmd = """
     cmake -S ext/eradiate/ext/mitsuba \
@@ -94,12 +136,6 @@ kernel-build.cwd = "."
 kernel-build.depends-on = ["kernel-configure"]
 
 kernel-clean = { cmd = "rm -rf ext/eradiate/ext/mitsuba/build/", cwd = "." }
-
-# Wrap pytest with appropriate environment tuning to enforce a non-interactive
-# backend and route test mode-dependent features to the 'test' mode
-test.cmd = "pytest"
-test.cwd = "."
-test.env = { MPLBACKEND = "Agg", ERADIATE_TEST_MODE = "test" }
 
 # Run benchmarks
 bench.cmd = "pytest tests/benchmarks"
