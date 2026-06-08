@@ -89,7 +89,7 @@ html_theme_options = {
     "nav_links": [
         {"title": "User guide", "url": "user_guide/index"},
         {"title": "Examples", "url": "examples/index"},
-        {"title": "API", "url": "api/index"},
+        {"title": "API", "url": "api/eradiate_disort"},
         {"title": "Contributing", "url": "dev/index"},
         {
             "title": "Main docs",
