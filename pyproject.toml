@@ -43,6 +43,7 @@ docs = [
 ]
 lint = ["ruff", "ty", "reuse"]
 dev = [
+  "bump-my-version",
   "ipykernel",
   "ipywidgets",
   "jupyterlab",
@@ -177,6 +178,11 @@ docs-lock.cwd = "."
 lint = { cmd = "ruff check", cwd = "." }
 lint-ext = { cmd = "ruff check --extend-select B,C4,SIM,PIE,UP,PERF,NPY,RUF", cwd = "." }
 lint-reuse = { cmd = "reuse lint", cwd = "." }
+
+# Version bump
+bump = { cmd = "bump-my-version bump --new-version $RELEASE_VERSION" }
+bump-show = { cmd = "bump-my-version show-bump" }
+bump-dry = { cmd = "bump-my-version bump --new-version $RELEASE_VERSION --dry-run --verbose" }
 
 # --- Tool configuration ---
 
