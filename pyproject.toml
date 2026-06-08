@@ -1,6 +1,6 @@
 [project]
 name = "eradiate-disort"
-version = "0.1.0"
+version = "0.1.0-rc1"
 description = "Eradiate DISORT backend"
 readme = "README.md"
 authors = [{ name = "Vincent Leroy", email = "vincent.leroy@rayference.eu" }]
