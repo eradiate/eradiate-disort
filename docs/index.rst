@@ -27,17 +27,17 @@ CDISORT.
 
         Learn to use the DISORT backend with practical examples.
 
-    .. grid-item-card:: :iconify:`material-symbols:code height=1.5em` Developer guide
-        :link: dev/index
-        :link-type: doc
-
-        Contribute to and maintain the DISORT backend.
-
     .. grid-item-card:: :iconify:`material-symbols:description height=1.5em` API reference
         :link: api/eradiate_disort
         :link-type: doc
 
         Browse the API reference.
+
+    .. grid-item-card:: :iconify:`material-symbols:code height=1.5em` Developer guide
+        :link: dev/index
+        :link-type: doc
+
+        Contribute to and maintain the DISORT backend.
 
     .. grid-item-card:: :iconify:`mdi:clock height=1.5em` Changelog
         :link: changelog
@@ -67,16 +67,16 @@ CDISORT.
 .. toctree::
     :maxdepth: 2
     :hidden:
-    :caption: Developer Guide
+    :caption: API Reference
 
-    dev/index
+    api/eradiate_disort
 
 .. toctree::
     :maxdepth: 2
     :hidden:
-    :caption: API Reference
+    :caption: Developer Guide
 
-    api/eradiate_disort
+    dev/index
 
 .. toctree::
    :hidden:

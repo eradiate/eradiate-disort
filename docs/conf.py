@@ -71,7 +71,10 @@ nb_execution_mode = "off"
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 html_static_path = ["_static"]
 html_css_files = ["custom.css"]
-html_title = "eradiate-disort"
+html_title = "Eradiate DISORT documentation"
+html_short_title = "Eradiate DISORT documentation"
+html_favicon = "_images/icon_eradiate.png"
+html_show_sourcelink = False
 
 # Use Shibuya theme
 # https://shibuya.lepture.com/
@@ -82,6 +85,18 @@ html_theme_options = {
     "github_url": "https://github.com/eradiate/eradiate-disort",
     "light_logo": "_static/eradiate-disort-logo-typo_simple-black.svg",
     "dark_logo": "_static/eradiate-disort-logo-typo_simple-white.svg",
+    "nav_links_align": "center",
+    "nav_links": [
+        {"title": "User guide", "url": "user_guide/index"},
+        {"title": "Examples", "url": "examples/index"},
+        {"title": "API", "url": "api/index"},
+        {"title": "Contributing", "url": "dev/index"},
+        {
+            "title": "Main docs",
+            "url": "https://eradiate.readthedocs.org/",
+            "external": True,
+        },
+    ],
 }
 
 # Pygments options
