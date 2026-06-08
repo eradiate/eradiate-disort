@@ -155,7 +155,7 @@ Illumination and surface
 Only :class:`~eradiate.scenes.illumination.DirectionalIllumination` (a
 collimated beam) and a :class:`~eradiate.scenes.bsdfs.LambertianBSDF` (a diffuse,
 spectrally varying surface reflectance) are supported. Thermal emission is
-disabled; the backend computes solar (shortwave) radiative transfer only.
+disabled; only the solar reflective region is supported.
 
 Atmospheres and phase functions
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -164,13 +164,13 @@ Any of :class:`~eradiate.scenes.atmosphere.MolecularAtmosphere`,
 :class:`~eradiate.scenes.atmosphere.ParticleLayer`,
 :class:`~eradiate.scenes.atmosphere.HomogeneousAtmosphere` and
 :class:`~eradiate.scenes.atmosphere.HeterogeneousAtmosphere` (an arbitrary
-stack of the former) are accepted; a scene with no atmosphere is also valid.
+stack of the latter two) are accepted; a scene with no atmosphere is also valid.
 
 Scattering is represented through Legendre moments derived from each component's
 phase function. Isotropic, Rayleigh and tabulated particle phase functions are
-supported; any other type raises :class:`NotImplementedError`. In a
+supported; any other type raises a :class:`NotImplementedError`. In a
 multi-component (heterogeneous) atmosphere, per-component phase functions are
-blended layer by layer, weighted by scattering coefficient.
+blended layer by layer.
 
 Measures
 ^^^^^^^^
