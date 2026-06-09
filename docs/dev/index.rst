@@ -4,24 +4,19 @@ Developer guide
 This guide is intended to contributors of all sorts — developers, maintainers,
 users willing to report issues, with or without AI programming assistance.
 
-.. _dev-ai_policy:
+.. _dev-ai_programming:
 
 AI programming
 --------------
 
 Usage of AI coding assistants (*e.g.* Claude Code, Codex, Cursor) is allowed in
-this project, but only as a tool under human supervision. All changes are authored
-by a human responsible for them regardless of how they were produced;
+this project, but only as a tool under human supervision. All changes are
+authored by a human responsible for them regardless of how they were produced;
 "the agent wrote it" is not a defence for a regression.
 
-Although presented as particularly important in the context of AI-assisted
-programming, most of the following guidelines are actually also applicable to
-humans outside of an agentic loop.
-
-.. seealso::
-
-    `Repo-level guidelines\
-    <https://github.com/eradiate/eradiate-disort/blob/main/AI_POLICY.md>`__
+AI policy
+    Be sure to read, understand and comply to our
+    `AI policy <https://github.com/eradiate/eradiate-disort/blob/main/AI_POLICY.md>`__.
 
 Project context for agents
     ``AGENTS.md`` at the repository root is the source of truth for conventions,
@@ -29,16 +24,29 @@ Project context for agents
     in sync with the code: when you change a convention or a translation detail,
     update ``AGENTS.md`` (and this guide) in the same change.
 
+Provenance and attribution
+    Disclose substantial AI involvement in the pull request description and / or
+    commit messages under an "AI disclosure" section. Do **not** list your AI
+    tool as a co-author of your commits.
+
+.. _dev-general_guidelines:
+
+General guidelines
+------------------
+
+The following, general guidelines, apply to everyone, regardless of whether they
+use AI tools.
+
 Verification expectations
-    Agent-authored changes must pass the full test suite. Where physics is
-    touched, they must additionally be checked against the regression references
-    or the Monte Carlo backend before merging — a green suite alone is not enough
-    if the references themselves were regenerated.
+    All changes must pass the full test suite. Where physics is touched, they
+    must additionally be checked against the regression references or the Monte
+    Carlo backend before merging — a green suite alone is not enough if the
+    references themselves were regenerated.
 
 Regression data discipline
     Never regenerate regression test references with ``--force-regen`` just to
-    make a test pass. Regenerate only when you understand why the expected values
-    changed and have confirmed the new values are correct.
+    make a test pass. Regenerate only when you understand why the expected
+    values changed and have confirmed the new values are correct.
 
 High-risk areas
     Pay particular attention to parts of the code falling under the
@@ -48,19 +56,15 @@ High-risk areas
     show up as obvious errors in a diff and a plausible-looking change can
     silently break.
 
-Provenance and attribution
-    Add co-authorship trailers to AI-assisted commits and disclose substantial
-    AI involvement in the pull request description under an "AI disclosure"
-    section.
-
 Licensing caution
     This is a GPLv3 project. Do not paste in code of unknown or incompatible
     provenance; an agent suggesting a verbatim block from elsewhere is a
     licensing risk.
 
 Tooling guardrails
-    Rely on pre-commit (ruff, taplo) and CI as the source of truth for formatting
-    and lint, not on an agent's — or your own — claim that a file is clean.
+    Rely on pre-commit (ruff, taplo) and CI as the source of truth for
+    formatting and lint, not on an agent's — or your own — claim that a file is
+    clean.
 
 Development environment
 -----------------------
@@ -248,7 +252,7 @@ Eradiate-to-DISORT translation
 These are the subtle, error-prone parts of the backend. The points below are the
 conventions that must be respected when changing it. Bugs here are numerical,
 not structural, and rarely visible in a diff — see
-:ref:`AI / agentic programming <dev-ai_policy>`.
+:ref:`AI / agentic programming <dev-ai_programming>`.
 
 Layer ordering
     CDISORT expects atmospheric layers ordered **top-to-bottom**, whereas
@@ -352,7 +356,7 @@ Regression references  are stored in ``tests/data/regression_references/``,
 under a subdirectory tree that reflects test the module layout. They can be
 regenerated them by appending ``--force-regen`` to the test invocation. Do this
 only when you understand *why* the reference changed — see
-:ref:`AI / agentic programming <dev-ai_policy>`.
+:ref:`AI / agentic programming <dev-ai_programming>`.
 
 Benchmarks
 ^^^^^^^^^^

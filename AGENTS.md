@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This file provides guidance to coding agents when working with code in this repository.
 
 ## Overview
 
@@ -13,7 +13,7 @@ The project is managed with **pixi**. Two key dependencies are git submodules un
 - `ext/eradiate` — the Eradiate model (editable, depends heavily on Mitsuba/Dr.Jit)
 - `ext/nanodisort` — CDISORT bindings (editable)
 
-After cloning, initialise submodules (`git submodule update --init --recursive`). The pixi `activation` runs `ext/eradiate/setpath.sh` and sets `ERADIATE_PATH=tests/data`. `.envrc` pins `CC`/`CXX` to clang-17 for building the Mitsuba kernel.
+After cloning, initialise submodules (`git submodule update --init --recursive`). The pixi `dev` activation runs `scripts/set-macos-deployment-target.sh` (no-op off macOS) then `ext/eradiate/setpath.sh`, and sets `ERADIATE_PATH=tests/data`. `.envrc` pins `CC`/`CXX` to clang-17 for building the Mitsuba kernel.
 
 Environments: `default` (`py312` + `test` + `docs` + `dev` — the working environment) plus the CI environments `ghapy310`–`ghapy313` (`pyXXX` + `kernel` + `test`, one per supported interpreter).
 
@@ -23,7 +23,7 @@ Run via `pixi run <task>`. Tasks are defined per feature in `pyproject.toml`: `t
 
 - `pixi run test` — run the test suite (sets `MPLBACKEND=Agg`, `ERADIATE_TEST_MODE=test`). Benchmarks are excluded by default.
 - `pixi run bench` — run benchmarks in `tests/benchmarks` (`ERADIATE_TEST_MODE=benchmark`).
-- `pixi run lint` — `ruff check`. `pixi run lint-ext` adds extended rule sets (B, C4, SIM, PIE, UP, PERF, NPY, RUF).
+- `pixi run lint` — `ruff check`. `pixi run lint-ext` adds extended rule sets (B, C4, SIM, PIE, UP, PERF, NPY, RUF). `pixi run lint-reuse` runs `reuse lint` (SPDX/license compliance).
 - `pixi run docs` / `docs-serve` / `docs-clean` — build / live-serve / clean Sphinx docs.
 - `pixi run nb-execute-all` — execute the example notebooks (`ERADIATE_TEST_MODE=tutorial`).
 - `pixi run kernel-configure` / `kernel-build` / `kernel-clean` — build the Mitsuba kernel at `ext/eradiate/ext/mitsuba` (needed for examples/tests that use the Monte Carlo backend as a reference).
@@ -64,6 +64,7 @@ These are the subtle parts; the actual translation lives in `_backend.py` and `_
 - `_phase.py` — `get_pmom` (Legendre moments) and `get_phase` (μ-grid + phase values) for atmospheres, dispatching on phase-function type.
 - `_pipeline.py` — Eradiate `Pipeline` DAG (`build_disort_pipeline`): `stacked_data` → `aggregated_data` (CKD quadrature) → `datatree`.
 - `io.py` — `normalize_metadata` for CF-style coordinate/variable attributes.
+- `util.py` — post-processing helpers for run output (e.g. `disort_reshape_pplane`, which rebuilds a signed-zenith principal-plane radiance `DataArray` from a result `DataTree`).
 - `testing/` — shared helpers (importable as `eradiate_disort.testing`): `TestMode` (mode selector via `ERADIATE_TEST_MODE`), `cases` (canonical experiment builders), `xarray_regression` fixture, plotting helpers.
 
 ### Spectral modes

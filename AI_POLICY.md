@@ -24,9 +24,9 @@ The **eradiate-disort** project has strict rules for AI usage:
   and code are the only acceptable AI-generated content, per the other rules in
   this policy.
 
-These rules apply only to outside contributions to **eradiate-disort**.
-Maintainers are exempt from these rules and may use AI tools at their
-discretion; they've proven themselves trustworthy enough to apply good judgment.
+These rules apply strictly only to outside contributions to **eradiate-disort**.
+Maintainers are trusted to apply good judgment when using AI tools and are not
+strictly subject to these rules, although they are encouraged to follow them.
 
 ## There are humans here
 
@@ -49,3 +49,7 @@ is an environmental threat and promotes cognitive atrophy.
 While we understand that using AI tools is compelling in a highly competitive
 economy, we do not want to encourage contributors to use them — they are already
 pushed by their competitors and AI tool providers.
+
+## Are you willing to contribute?
+
+Then head on to our [developer's guide](https://eradiate.readthedocs.io/projects/disort/latest/dev/index.html).
