@@ -68,6 +68,12 @@ def _utau_from_spec(
 
     level_altitudes : pint.Quantity
         Altitudes corresponding to each utau value, shape ``(n,)``.
+
+    Notes
+    -----
+    This measurement adheres to DISORT conventions. This is a deliberate
+    choice made to simplify debugging and to make the effort of
+    transitioning from another DISORT-powered RTM easier.
     """
     # Cumulative tau from TOA at each level boundary, indexed top-to-bottom
     # tau_cumsum_tob[0] = 0 (TOA), tau_cumsum_tob[-1] = total tau (BOA)
@@ -81,7 +87,7 @@ def _utau_from_spec(
     if z_levels is not None:
         z_m = z_levels.m_as("m")
         z_grid_m = z_levels_grid.m_as("m")
-        # Snap each altitude to the nearest level boundary by linear interpolation
+        # Snap each altitude to the nearest level boundary
         idxs = np.clip(
             np.round(np.interp(z_m, z_grid_m, np.arange(n_levels))).astype(int),
             0,
@@ -89,6 +95,7 @@ def _utau_from_spec(
         )
         utau_values = tau_at_levels[idxs]
         alt_values = z_levels_grid[idxs]
+
     elif utau is not None:
         utau_values = np.asarray(utau, dtype=float)
         # Interpolate altitudes from tau values for coordinate labelling.
@@ -99,6 +106,7 @@ def _utau_from_spec(
             z_levels_grid.m_as("m")[::-1],  # descending: z_TOA … z_ground
         )
         alt_values = alt_m * z_levels_grid.u
+
     else:
         # Default: TOA and BOA
         utau_values = np.array([0.0, tau_cumsum_tob[-1]])
@@ -106,6 +114,7 @@ def _utau_from_spec(
 
     # Sort ascending (DISORT requirement)
     order = np.argsort(utau_values)
+
     return utau_values[order], alt_values[order]
 
 
