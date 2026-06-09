@@ -31,7 +31,7 @@ jobs:
           cache: true
 
       - name: Install Eradiate assets
-        run: pixi run -e ${{ matrix.environment }} eradiate data install core mycena panellus
+        run: pixi run -e ${{ matrix.environment }} eradiate data install core mycena
 
       - name: Run tests
         run: pixi run -e ${{ matrix.environment }} test

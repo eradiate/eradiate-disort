@@ -33,7 +33,9 @@ import eradiate_disort as ed
 eradiate.set_mode("ckd")
 sns.set_theme(style="ticks")
 
+
 # %%
+# Constants
 ZENITHS = np.arange(-75.0, 76.0, 1.0)
 SPP = 1_000
 # CASES = {"0": 0.0, "1": 1.0, "5": 5.0, "10": 10.0}
@@ -41,7 +43,22 @@ CASES = {"0": 0.0, "50": 50.0}
 # wmin, wmax = 300.0, 700.0
 wmin, wmax = 600.0, 700.0
 
+ABSORPTION_DB = (
+    "monotropa"  # change to 'panellus' (1 nm resolution) or 'mycena' (10 nm)
+)
 
+
+# %% tags=["remove-cell"]
+from eradiate_disort.testing import TestMode
+
+# Overwrite ABSORPTION_DB according to detected test mode
+if TestMode.get() == "test":
+    ABSORPTION_DB = "mycena"  # fast mode in regression tests
+else:
+    ABSORPTION_DB = "monotropa"
+
+
+# %% tags=["remove-cell"]
 def make_exp(backend, wmin=590.0, wmax=610.0, tau_ref=0.0, altitude=0.0, spp=10_000):
     spp_radiance = max(spp // 16, 1)
     spp_flux = max(spp // (32 * 32 * 16), 1)
@@ -81,7 +98,7 @@ def make_exp(backend, wmin=590.0, wmax=610.0, tau_ref=0.0, altitude=0.0, spp=10_
         surface={"type": "lambertian", "reflectance": 0.5},
         atmosphere={
             "type": "heterogeneous",
-            "molecular_atmosphere": {"absorption_data": "mycena"},
+            "molecular_atmosphere": {"absorption_data": ABSORPTION_DB},
             # "particle_layers": particle_layer,
         },
         illumination={
@@ -179,7 +196,7 @@ for i, case_id in enumerate(CASES.keys()):
     x = brf_disort["w"].values
     y = brf_disort.values
     mask = (x >= wmin) & (x <= wmax)
-    ax.step(x[mask], y[mask], where="mid", label="DISORT")
+    ax.step(x[mask], y[mask], where="mid", label="DISORT", ls="--")
 
     ax.set_xlabel("Wavelength [nm]")
     ax.set_ylabel("TOA BRF [—]")
@@ -218,7 +235,7 @@ for i, case_id in enumerate(CASES.keys()):
     x = flux_disort["w"].values
     y = flux_disort.values
     mask = (x >= wmin) & (x <= wmax)
-    ax.step(x[mask], y[mask], where="mid", label="DISORT")
+    ax.step(x[mask], y[mask], where="mid", label="DISORT", ls="--")
 
     ax.set_xlabel("Wavelength [nm]")
     ax.set_ylabel("BOA flux [W/m²/nm]")

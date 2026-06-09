@@ -10,7 +10,7 @@
 #       format_version: '1.3'
 #       jupytext_version: 1.19.3
 #   kernelspec:
-#     display_name: eradiate-disort (pixi)
+#     display_name: eradiate-disort (pixi dev)
 #     language: python
 #     name: eradiate-disort
 # ---
@@ -33,8 +33,27 @@ import eradiate_disort as ed
 eradiate.set_mode("ckd")
 sns.set_theme(style="ticks")
 
+
+# %%
+# Constants
+ABSORPTION_DB = (
+    "monotropa"  # change to 'panellus' (1 nm resolution) or 'mycena' (10 nm)
+)
+
+
+# %% tags=["remove-cell"]
+from eradiate_disort.testing import TestMode
+
+# Overwrite ABSORPTION_DB according to detected test mode
+if TestMode.get() == "test":
+    ABSORPTION_DB = "mycena"  # fast mode in regression tests
+else:
+    ABSORPTION_DB = "monotropa"
+
+
 # %% [markdown]
 # ## Surface spectrum loading
+
 
 # %%
 # Load surface spectrum
@@ -47,7 +66,6 @@ albedo_data = np.loadtxt(
 albedo_spectrum = InterpolatedSpectrum(
     wavelengths=albedo_data[:, 0], values=albedo_data[:, 1]
 )
-
 
 # %% [markdown]
 # ## Experiment definition
@@ -101,7 +119,7 @@ def experiment(backend, wmin=600.0, wmax=610.0, tau_ref=0.0):
         surface={"type": "lambertian", "reflectance": albedo_spectrum},
         atmosphere={
             "type": "heterogeneous",
-            "molecular_atmosphere": {"absorption_data": "panellus"},
+            "molecular_atmosphere": {"absorption_data": ABSORPTION_DB},
             "particle_layers": particle_layer,
         },
         illumination={
@@ -120,10 +138,10 @@ def experiment(backend, wmin=600.0, wmax=610.0, tau_ref=0.0):
 # ## Processing
 
 # %%
-exp_kwargs = {"wmin": 600.0, "wmax": 610.0, "tau_ref": 0.0}
+exp_kwargs = {"wmin": 600.0, "wmax": 650.0, "tau_ref": 0.0}
 # exp_kwargs = {"wmin": 600.0, "wmax": 850.0, "tau_ref": 0.0}
 # exp_kwargs = {"wmin": 600.0, "wmax": 850.0, "tau_ref": 10.0}
-# exp_kwargs = {"wmin": 600.0, "wmax": 610.0, "tau_ref": 10.0}
+# exp_kwargs = {"wmin": 600.0, "wmax": 650.0, "tau_ref": 10.0}
 
 exp_mitsuba = experiment("mitsuba", **exp_kwargs)
 eradiate.run(exp_mitsuba, spp=10_000)
@@ -311,3 +329,5 @@ ax.legend()
 
 plt.show()
 plt.close()
+
+# %%

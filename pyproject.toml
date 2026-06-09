@@ -197,3 +197,7 @@ exclude = ["tests/examples/example_*.py", "docs/examples/*.ipynb"]
 minversion = "8.4"
 testpaths = ["tests"]
 addopts = "--ignore=tests/benchmarks --tb=short -v -p no:benchmark"
+filterwarnings = [
+  "ignore:FigureCanvasAgg is non-interactive:UserWarning",
+  "ignore:datetime.datetime.utcnow\\(\\) is deprecated:DeprecationWarning:joseki.profiles.util",
+]

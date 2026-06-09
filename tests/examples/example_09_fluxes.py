@@ -29,11 +29,25 @@ from eradiate.experiments import AtmosphereExperiment
 from eradiate.units import unit_registry as ureg
 import matplotlib.patheffects as patheffects
 
-
 import eradiate_disort as ed
 
 eradiate.set_mode("ckd")
 sns.set_theme(style="ticks")
+
+# %%
+# Constants
+ABSORPTION_DB = (
+    "monotropa"  # change to 'panellus' (1 nm resolution) or 'mycena' (10 nm)
+)
+
+# %% tags=["remove-cell"]
+from eradiate_disort.testing import TestMode
+
+# Overwrite ABSORPTION_DB according to detected test mode
+if TestMode.get() == "test":
+    ABSORPTION_DB = "mycena"  # fast mode in regression tests
+else:
+    ABSORPTION_DB = "monotropa"
 
 # %% [markdown]
 # ## Surface spectrum loading
@@ -95,7 +109,7 @@ def make_exp(backend, wmin=590.0, wmax=610.0, tau_ref=0.0, spp=10_000):
         surface={"type": "lambertian", "reflectance": 0.5},
         atmosphere={
             "type": "heterogeneous",
-            "molecular_atmosphere": {"absorption_data": "mycena"},
+            "molecular_atmosphere": {"absorption_data": ABSORPTION_DB},
             # "particle_layers": particle_layer,
         },
         illumination={
