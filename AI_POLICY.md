@@ -14,7 +14,7 @@ The **eradiate-disort** project has strict rules for AI usage:
   what your changes do and how they interact with the greater system without the
   aid of AI tools, do not contribute to this project.
 
-- **Issues and discussions can use AI assistance but must have a full
+- **Issues and discussions can use AI assistance but must have a
   human-in-the-loop.** This means that any content generated with AI must have
   been reviewed _and edited_ by a human before submission. AI is very good at
   being overly verbose and including noise that distracts from the main point.
@@ -48,4 +48,4 @@ is an environmental threat and promotes cognitive atrophy.
 
 While we understand that using AI tools is compelling in a highly competitive
 economy, we do not want to encourage contributors to use them — they are already
-pushed by competitors and AI tool providers.
+pushed by their competitors and AI tool providers.

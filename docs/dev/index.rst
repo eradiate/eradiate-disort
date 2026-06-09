@@ -11,8 +11,12 @@ AI programming
 
 Usage of AI coding assistants (*e.g.* Claude Code, Codex, Cursor) is allowed in
 this project, but only as a tool under human supervision. All changes are authored
-by a human responsible for them regardless of how them were produced;
+by a human responsible for them regardless of how they were produced;
 "the agent wrote it" is not a defence for a regression.
+
+Although presented as particularly important in the context of AI-assisted
+programming, most of the following guidelines are actually also applicable to
+humans outside of an agentic loop.
 
 .. seealso::
 
@@ -20,10 +24,10 @@ by a human responsible for them regardless of how them were produced;
     <https://github.com/eradiate/eradiate-disort/blob/main/AI_POLICY.md>`__
 
 Project context for agents
-    ``CLAUDE.md`` at the repository root is the source of truth for conventions,
-    architecture and gotchas, and is loaded automatically by Claude Code. Keep it
+    ``AGENTS.md`` at the repository root is the source of truth for conventions,
+    architecture and gotchas, and is loaded automatically by AI tools. Keep it
     in sync with the code: when you change a convention or a translation detail,
-    update ``CLAUDE.md`` (and this guide) in the same change.
+    update ``AGENTS.md`` (and this guide) in the same change.
 
 Verification expectations
     Agent-authored changes must pass the full test suite. Where physics is
@@ -38,7 +42,7 @@ Regression data discipline
 
 High-risk areas
     Pay particular attention to parts of the code falling under the
-    :ref:` Eradiate-to-DISORT translation <dev-translation>` section
+    :ref:`Eradiate-to-DISORT translation <dev-translation>` section
     (ordering, azimuth, ``utau``, allocation ordering, phase-moment scaling).
     This is where AI output must be reviewed most carefully. Such issues do not
     show up as obvious errors in a diff and a plausible-looking change can
