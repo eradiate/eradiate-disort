@@ -5,7 +5,7 @@ description = "Eradiate DISORT backend"
 readme = "README.md"
 authors = [{ name = "Vincent Leroy", email = "vincent.leroy@rayference.eu" }]
 requires-python = ">=3.10,<3.14"
-dependencies = ["nanodisort==0.2.*", "xarray>=2024.11", "eradiate==1.2.0rc5"]
+dependencies = ["nanodisort==0.2.*", "xarray>=2024.11", "eradiate>=1.2.0,<1.3.0"]
 classifiers = [
   "Development Status :: 4 - Beta",
   "Intended Audience :: Science/Research",
@@ -53,10 +53,7 @@ dev = [
   { include-group = "docs" },
 ]
 # CI groups
-kernel = [
-  "eradiate==1.2.0rc5",
-  "eradiate-mitsuba==0.5.0rc2",
-] # force PyPI kernel package
+kernel = ["eradiate[kernel]>=1.2.0,<1.3.0"] # force PyPI kernel package
 rtd = [{ include-group = "kernel" }, { include-group = "docs" }] # Read The Docs
 gha = [{ include-group = "kernel" }, { include-group = "test" }] # GH Actions
 
