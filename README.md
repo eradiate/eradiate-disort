@@ -1,8 +1,16 @@
 # Eradiate DISORT backend
 
-[![PyPI version](https://img.shields.io/pypi/v/eradiate-disort?color=blue)](https://pypi.org/project/eradiate-disort)
-[![GitHub Workflow Status (branch)](https://img.shields.io/github/actions/workflow/status/eradiate/eradiate-disort/test.yml?branch=main)](https://github.com/eradiate/eradiate-disort/actions/workflows/test.yml)
-[![Documentation Status](https://img.shields.io/readthedocs/eradiate-disort)](https://eradiate.readthedocs.io/projects/disort/latest)
+[![pypi][pypi-badge]][pypi-url]
+[![ci][ci-badge]][ci-url]
+[![docs][docs-badge]][docs-url]
+
+
+[pypi-badge]: https://img.shields.io/pypi/v/eradiate-disort?style=flat-square&color=blue
+[pypi-url]: https://pypi.org/project/eradiate-disort/
+[ci-badge]: https://img.shields.io/github/actions/workflow/status/eradiate/eradiate-disort/test.yml?branch=main&style=flat-square
+[ci-url]: https://github.com/eradiate/eradiate-disort/actions/workflows/test.yml
+[docs-badge]: https://img.shields.io/readthedocs/eradiate-disort?style=flat-square
+[docs-url]: https://eradiate.readthedocs.io/projects/disort/latest
 
 A DISORT radiometric backend for the [Eradiate](https://github.com/eradiate/eradiate) radiative transfer model.
 
