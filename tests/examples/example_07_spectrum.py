@@ -20,6 +20,17 @@
 #
 # This notebook compares the output of Eradiate's Mitsuba and DISORT backends for spectral computations.
 
+# %% tags=["remove-cell"]
+# Documentation-specific setup, hidden from notebook output
+
+# %matplotlib inline
+# %config InlineBackend.figure_format = 'svg'
+
+import seaborn as sns
+
+sns.set_theme(style="ticks")
+
+
 # %%
 import eradiate
 import matplotlib.pyplot as plt
@@ -31,7 +42,6 @@ from eradiate.units import unit_registry as ureg
 import eradiate_disort as ed
 
 eradiate.set_mode("ckd")
-sns.set_theme(style="ticks")
 
 
 # %%
