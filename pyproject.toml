@@ -82,7 +82,7 @@ pixi-pycharm = ">=0.0.11,<0.0.12"
 
 [tool.pixi.feature.dev.pypi-dependencies]
 nanodisort = { path = "ext/nanodisort", editable = true }
-eradiate = { path = "ext/eradiate", editable = true, extras = ["recommended"] }
+eradiate = { extras = ["kernel", "recommended"] }
 
 [tool.pixi.feature.py310.dependencies]
 python = "3.10.*"
@@ -97,7 +97,7 @@ python = "3.12.*"
 python = "3.13.*"
 
 [tool.pixi.environments]
-# Development environments
+# Development environment
 default = { features = ["py312", "test", "docs", "dev"], solve-group = "default" }
 
 # CI environments
@@ -117,24 +117,10 @@ test.env = { MPLBACKEND = "Agg", ERADIATE_TEST_MODE = "test" }
 # set-macos-deployment-target.sh pins MACOSX_DEPLOYMENT_TARGET to the interpreter's
 # own sysconfig value so locally-built wheel tags match uv's acceptance ceiling
 # (avoids scikit-build-core tagging with the running macOS version). No-op off macOS.
-scripts = ["scripts/set-macos-deployment-target.sh", "ext/eradiate/setpath.sh"]
+scripts = ["scripts/set-macos-deployment-target.sh"]
 env = { ERADIATE_PATH = "$PIXI_PROJECT_ROOT/tests/data" }
 
 [tool.pixi.feature.dev.tasks]
-# Mitsuba kernel build tasks (mirrors ext/eradiate pixi tasks; Mitsuba lives at ext/eradiate/ext/mitsuba)
-kernel-configure.cmd = """
-    cmake -S ext/eradiate/ext/mitsuba \
-          -B ext/eradiate/ext/mitsuba/build \
-          -DCMAKE_BUILD_TYPE=Release -GNinja --preset eradiate
-"""
-kernel-configure.cwd = "."
-
-kernel-build.cmd = "cmake --build ext/eradiate/ext/mitsuba/build"
-kernel-build.cwd = "."
-kernel-build.depends-on = ["kernel-configure"]
-
-kernel-clean = { cmd = "rm -rf ext/eradiate/ext/mitsuba/build/", cwd = "." }
-
 # Run benchmarks
 bench.cmd = "pytest tests/benchmarks"
 bench.cwd = "."

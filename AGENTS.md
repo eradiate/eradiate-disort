@@ -8,25 +8,23 @@ This file provides guidance to coding agents when working with code in this repo
 
 ## Environment & dependencies
 
-The project is managed with **pixi**. Two key dependencies are git submodules under `ext/` and installed as editable:
+The project is managed with **pixi**. `eradiate` is pulled from PyPI (with the `kernel` and `recommended` extras, so the Mitsuba kernel ships as a prebuilt wheel — no local build). One dependency is still a git submodule under `ext/` and installed as editable:
 
-- `ext/eradiate` — the Eradiate model (editable, depends heavily on Mitsuba/Dr.Jit)
 - `ext/nanodisort` — CDISORT bindings (editable)
 
-After cloning, initialise submodules (`git submodule update --init --recursive`). The pixi `dev` activation runs `scripts/set-macos-deployment-target.sh` (no-op off macOS) then `ext/eradiate/setpath.sh`, and sets `ERADIATE_PATH=tests/data`. `.envrc` pins `CC`/`CXX` to clang-17 for building the Mitsuba kernel.
+After cloning, initialise the submodule (`git submodule update --init --recursive`). The pixi `dev` activation runs `scripts/set-macos-deployment-target.sh` (no-op off macOS; pins `MACOSX_DEPLOYMENT_TARGET` so locally built `nanodisort` wheel tags match uv's acceptance ceiling) and sets `ERADIATE_PATH=tests/data`.
 
 Environments: `default` (`py312` + `test` + `docs` + `dev` — the working environment) plus the CI environments `ghapy310`–`ghapy313` (`pyXXX` + `kernel` + `test`, one per supported interpreter).
 
 ## Common commands
 
-Run via `pixi run <task>`. Tasks are defined per feature in `pyproject.toml`: `test` lives under `[tool.pixi.feature.test.tasks]`; the rest (`bench`, `lint*`, `docs*`, `nb-*`, `kernel-*`, `bump*`) under `[tool.pixi.feature.dev.tasks]`. There is no top-level `[tool.pixi.tasks]` table.
+Run via `pixi run <task>`. Tasks are defined per feature in `pyproject.toml`: `test` lives under `[tool.pixi.feature.test.tasks]`; the rest (`bench`, `lint*`, `docs*`, `nb-*`, `bump*`) under `[tool.pixi.feature.dev.tasks]`. There is no top-level `[tool.pixi.tasks]` table.
 
 - `pixi run test` — run the test suite (sets `MPLBACKEND=Agg`, `ERADIATE_TEST_MODE=test`). Benchmarks are excluded by default.
 - `pixi run bench` — run benchmarks in `tests/benchmarks` (`ERADIATE_TEST_MODE=benchmark`).
 - `pixi run lint` — `ruff check`. `pixi run lint-ext` adds extended rule sets (B, C4, SIM, PIE, UP, PERF, NPY, RUF). `pixi run lint-reuse` runs `reuse lint` (SPDX/license compliance).
 - `pixi run docs` / `docs-serve` / `docs-clean` — build / live-serve / clean Sphinx docs.
 - `pixi run nb-execute-all` — execute the example notebooks (`ERADIATE_TEST_MODE=tutorial`).
-- `pixi run kernel-configure` / `kernel-build` / `kernel-clean` — build the Mitsuba kernel at `ext/eradiate/ext/mitsuba` (needed for examples/tests that use the Monte Carlo backend as a reference).
 
 Run a single test: `pixi run test tests/test_backend.py::test_name` (the `test` task wraps `pytest`, so extra args pass through).
 

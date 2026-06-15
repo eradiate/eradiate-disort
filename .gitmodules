@@ -1,6 +1,3 @@
 [submodule "ext/nanodisort"]
 	path = ext/nanodisort
 	url = git@github.com:eradiate/nanodisort.git
-[submodule "ext/eradiate"]
-	path = ext/eradiate
-	url = git@github.com:eradiate/eradiate.git

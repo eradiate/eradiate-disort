@@ -70,33 +70,33 @@ Development environment
 -----------------------
 
 The project is managed with `Pixi <https://pixi.sh/>`__. Install Pixi, clone the
-repository, and initialize the submodules::
+repository, and initialize the submodule::
 
     git submodule update --init --recursive
 
-Two dependencies live under ``ext/`` as git submodules and are installed as
-editable Pixi dependencies:
+`Eradiate <https://github.com/eradiate/eradiate>`__ is pulled from PyPI with the
+``kernel`` and ``recommended`` extras, so the Mitsuba kernel ships as a prebuilt
+wheel and there is nothing to compile locally. Its Monte Carlo backend is what
+the DISORT results are validated against.
 
-``ext/eradiate``
-    The Eradiate model itself. It depends heavily on Mitsuba and Dr.Jit, and its
-    Monte Carlo backend is what the DISORT results are validated against.
+One dependency lives under ``ext/`` as a git submodule and is installed as an
+editable Pixi dependency:
 
 ``ext/nanodisort``
     The ``nanodisort`` bindings to CDISORT (the C port of DISORT) through which
     the solver is reached.
 
-Because both are editable installs, changes made in the submodule trees are
+Because it is an editable install, changes made in the submodule tree are
 picked up without reinstalling.
 
 Activation
 ^^^^^^^^^^
 
-The ``dev`` feature's activation runs two scripts on environment entry:
-``scripts/set-macos-deployment-target.sh`` (a no-op off macOS; pins
-``MACOSX_DEPLOYMENT_TARGET`` so locally built wheel tags match uv's acceptance
-ceiling) and ``ext/eradiate/setpath.sh`` (puts Eradiate and its kernel on the
-path). Activation also adds ``tests/data`` to ``ERADIATE_PATH``, so that
-Eradiate's path resolver picks up testing data.
+The ``dev`` feature's activation runs ``scripts/set-macos-deployment-target.sh``
+on environment entry (a no-op off macOS; pins ``MACOSX_DEPLOYMENT_TARGET`` so
+locally built ``nanodisort`` wheel tags match uv's acceptance ceiling).
+Activation also adds ``tests/data`` to ``ERADIATE_PATH``, so that Eradiate's path
+resolver picks up testing data.
 
 Features and environments
 ^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -112,16 +112,6 @@ The Pixi manifest defines feature sets — ``pyXXX`` (interpreter pins),
 ``ghapy310`` ... ``ghapy313``
     CI environments, one per supported interpreter, combining the corresponding
     Python pin with ``kernel`` and ``test``.
-
-Building the Mitsuba kernel
-^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-Examples and tests that use Eradiate's Monte Carlo backend as a reference need
-the compiled Mitsuba kernel at ``ext/eradiate/ext/mitsuba``. Build it with
-``pixi run kernel-build`` (``kernel-build`` depends on ``kernel-configure``,
-so building alone is enough); ``pixi run kernel-clean`` removes the build tree.
-Even when not using the Mitsuba backend, Mitsuba must be compiled to Eradiate to
-work.
 
 Task cheatsheet
 ^^^^^^^^^^^^^^^
@@ -166,16 +156,6 @@ All tasks run as ``pixi run <task>`` in the ``default`` environment.
 +------------------------+-----------------------------------------------------+
 | ``nb-execute-all``     | Sync and execute all                                |
 |                        | ``tests/examples/example_*.py`` notebooks.          |
-+------------------------+-----------------------------------------------------+
-| **Mitsuba kernel**                                                           |
-+------------------------+-----------------------------------------------------+
-| ``kernel-configure``   | Configure the Mitsuba kernel build (CMake,          |
-|                        | ``eradiate`` preset).                               |
-+------------------------+-----------------------------------------------------+
-| ``kernel-build``       | Build the Mitsuba kernel (depends on                |
-|                        | ``kernel-configure``).                              |
-+------------------------+-----------------------------------------------------+
-| ``kernel-clean``       | Remove the Mitsuba build tree.                      |
 +------------------------+-----------------------------------------------------+
 | **Releasing**                                                                |
 +------------------------+-----------------------------------------------------+
