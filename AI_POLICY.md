@@ -1,14 +1,10 @@
 # AI Usage Policy
 
->[!NOTE]
-> This policy is derived from the
-> [Ghostty AI policy](https://github.com/ghostty-org/ghostty/blob/main/AI_POLICY.md).
+The **eradiate-disort** project has the following rules for AI usage:
 
-The **eradiate-disort** project has strict rules for AI usage:
-
-- **All AI usage in any form must be disclosed.** You must state the tool you
-  used (*e.g.* Claude Code, Cursor, Amp) along with the extent that the work was
-  AI-assisted.
+- **All AI usage in any form must be disclosed.** You must state the model you
+- used along with the extent that the work was AI-assisted. Example:
+  *Claude Opus 4.8 for initial code generation*.
 
 - **The human-in-the-loop must fully understand all code.** If you can't explain
   what your changes do and how they interact with the greater system without the
@@ -16,7 +12,7 @@ The **eradiate-disort** project has strict rules for AI usage:
 
 - **Issues and discussions can use AI assistance but must have a
   human-in-the-loop.** This means that any content generated with AI must have
-  been reviewed _and edited_ by a human before submission. AI is very good at
+  been reviewed *and edited* by a human before submission. AI is very good at
   being overly verbose and including noise that distracts from the main point.
   Humans must do their research and trim this down.
 
@@ -36,7 +32,10 @@ Every discussion, issue, and pull request is read and reviewed by humans (and
 sometimes machines, too). It is a boundary point at which people interact with
 each other and the work done. It is rude and disrespectful to approach this
 boundary with low-effort, unqualified work, since it puts the burden of
-validation on the maintainer.
+validation on the maintainer. The actual value of a contribution is the amount
+of human work that has been put in it, and this work should mostly come from the
+contributor — otherwise it's no different from maintainers implementing a fix or
+feature by themselves.
 
 ## We are not anti-AI, but...
 
