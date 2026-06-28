@@ -25,9 +25,9 @@ Project context for agents
     update ``AGENTS.md`` (and this guide) in the same change.
 
 Provenance and attribution
-    Disclose substantial AI involvement in the pull request description and / or
-    commit messages under an "AI disclosure" section. Do **not** list your AI
-    tool as a co-author of your commits.
+    Disclose AI involvement in the pull request description and / or commit
+    messages under an "AI disclosure" section. Do **not** list your AI tool as a
+    co-author of your commits.
 
 .. _dev-general_guidelines:
 
@@ -321,18 +321,19 @@ The ``ERADIATE_TEST_MODE`` environment variable, surfaced through
 :class:`.TestMode`, selects how shareable code runs:
 
 ``test``
-    Used by test tasks. Full sample counts, no interactive plots.
+    Used by test tasks. Full sample counts, plots output to disk.
 
 ``benchmark``
     Used by benchmarking tasks. Full sample counts (possibly different from
     ``test``), no plots.
 
 ``tutorial``
-    Used by notebook tasks. Low sample counts, plots enabled.
+    Used by notebook tasks. Low sample counts, plots enabled (interactive window
+    in ).
 
 :meth:`.TestMode.spp` and :meth:`.TestMode.plt` let a single notebook serve all
 three modes. Hidden cells can bypass default settings (*e.g.* sample count) with
-values output by :class:`TestMode`.
+values output by :class:`.TestMode`.
 
 Examples as regression tests
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -374,14 +375,14 @@ The documentation is built with Sphinx, the
 `Shibuya <https://shibuya.lepture.com/>`__ theme and
 `MyST-NB <https://myst-nb.readthedocs.io/>`__, and is deployed on Read the Docs.
 
-Example notebook outputs are **committed**. The nbstripout pre-commit hook
-excludes ``docs/examples/`` so MyST-NB renders them without re-executing. This
-keeps the docs build fast and reproducible, at the cost of having to regenerate
-and commit outputs when an example changes (``pixi run nb-execute-all``).
+Example notebook outputs are committed. The nbstripout pre-commit hook excludes
+``docs/examples/`` so MyST-NB renders them without re-executing. This keeps the
+docs build fast and reproducible, at the cost of having to regenerate and commit
+outputs when an example changes (``pixi run nb-execute-all``).
 
-Build the docs locally with ``pixi run docs`` (HTML into
-``docs/_build/html``); ``pixi run docs-serve`` live-rebuilds with
-sphinx-autobuild, and ``pixi run docs-clean`` removes the build tree.
+Build the docs locally with ``pixi run docs``; ``pixi run docs-serve``
+live-rebuilds with sphinx-autobuild, and ``pixi run docs-clean`` removes the
+build tree.
 
 The pinned doc dependencies in ``docs/requirements.txt`` are regenerated with
 ``pixi run docs-lock`` (a ``uv pip compile`` invocation); commit the result when
@@ -396,11 +397,11 @@ Code style
 Python code is formatted linted with `Ruff <https://docs.astral.sh/ruff/>`__.
 Activate pre-commit hooks to enforce formatting and the basic linting rules.
 
-The basic lint rule set is
-intentionally small and can be applied with ``pixi run lint``. A more extensive
-rule set is available and should be applied to detect issues early during a
-refactoring pass, prior to opening a PR or merging a branch into ``main``. The
-extended rule set is applied by the ``pixi run lint-ext`` task.
+The basic lint rule set is intentionally small and can be applied with
+``pixi run lint``. A more extensive rule set is available and should be applied
+to detect issues early during a refactoring pass, prior to opening a PR or
+merging a branch into ``main``. The extended rule set is applied by the
+``pixi run lint-ext`` task.
 
 Public functions, classes and methods carry `Numpydoc
 <https://numpydoc.readthedocs.io/en/latest/format.html>`__-style docstrings, and
@@ -412,9 +413,9 @@ Module layout and public API
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Implementation modules are private and underscore-prefixed (*e.g.* ``_backend.py``,
-``_measurements.py``, ``_phase.py``, ``_pipeline.py``). The supported public API
-is the small surface re-exported from ``eradiate_disort/__init__.py``. Treat
-anything not re-exported there as internal and subject to change.
+``_measurements.py``, ``_phase.py``). The supported public API is the small
+surface re-exported from ``eradiate_disort/__init__.py``. Treat anything not
+re-exported there as internal and subject to change.
 
 In tests and examples, when relevant, import from the package root rather than
 reaching into private modules.
@@ -470,15 +471,15 @@ Versioning
 The project losely follows semantic versioning with an optional pre-release
 suffix (``dev`` / ``rc`` / ``final``); the current version is specified in
 ``pyproject.toml`` and is managed with
-`bump-my-version <https://github.com/callowayproject/bump-my-version>`__,
-configured in ``.bumpversion.toml``. Bump the version with::
+`bump-my-version <https://github.com/callowayproject/bump-my-version>`__.
+Bump the version with::
 
     RELEASE_VERSION=<new-version> pixi run bump
 
 ``pixi run bump-show`` lists the possible next versions and ``pixi run bump-dry``
 performs a verbose dry run. The bump configuration does not commit or tag
-automatically (``commit = false``, ``tag = false``); make the version-bump commit
-yourself, and tag it ``v<new-version>`` to match ``tag_name``.
+automatically; make the version-bump commit yourself, and tag it
+``v<new-version>``.
 
 Continuous integration
 ^^^^^^^^^^^^^^^^^^^^^^

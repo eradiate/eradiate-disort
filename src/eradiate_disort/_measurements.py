@@ -28,7 +28,9 @@ if TYPE_CHECKING:
 
 
 def _extract_kwargs(kwargs: dict, keys: list[str]) -> dict:
-    """Pop and return named keys from a kwargs dict (mutates in-place)."""
+    """
+    Pop and return named keys from a kwargs dict (mutates in-place).
+    """
     return {key: kwargs.pop(key) for key in keys if key in kwargs}
 
 

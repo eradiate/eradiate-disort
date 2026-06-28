@@ -36,8 +36,8 @@ class TestMode:
     variable.  When the variable is absent (e.g. in an interactive JupyterLab
     session), the mode defaults to ``"tutorial"``.
 
-    Modes
-    -----
+    Modes:
+
     ``"tutorial"``
         Low sample counts, interactive plotting.  Default in Jupyter.
     ``"test"``

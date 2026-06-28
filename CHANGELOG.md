@@ -6,4 +6,5 @@
 
 *First release.*
 
-This release bootstraps the DISORT backend. It provides the features needed to compute radiances and fluxes using `AtmosphereExperiment`.
+This release bootstraps the DISORT backend. It provides the features needed to
+compute radiances and fluxes using `AtmosphereExperiment`.
