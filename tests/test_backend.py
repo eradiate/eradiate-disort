@@ -319,6 +319,25 @@ class TestRun:
                 flux[field].values, rad[field].values, rtol=1e-6, atol=1e-9
             )
 
+    def test_sza_equals_quadpoint(self):
+        """
+        Using an SZA value that matches an angular quadrature point should not
+        crash the backend.
+        """
+        sza = 65.90299907 * ureg.deg
+        exp = AtmosphereExperiment(
+            geometry=plane_parallel(
+                np.linspace(0, 100.0, 11) * ureg.km, 100.0 * ureg.km
+            ),
+            surface={"type": "lambertian", "reflectance": 0.5},
+            atmosphere={"type": "molecular"},
+            illumination={"type": "directional", "zenith": sza, "azimuth": 0.0},
+            measures={"type": "disort"},
+        )
+
+        backend = ed.DisortBackend(nstr=16)
+        assert backend.run(exp) is not None
+
 
 # ------------------------------------------------------------------------------
 #                                DATA CONSISTENCY
