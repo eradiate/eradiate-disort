@@ -182,8 +182,16 @@ class DisortBackend:
         # Illumination angles
         illumination = exp.illumination
         ill_mu = np.cos(illumination.zenith.m_as("rad"))
+        # DISORT rejects a beam cosine that coincides with one of its
+        # computational angles. These are the double-Gauss abscissae:
+        # nstr/2 Gauss-Legendre nodes mapped from [-1, 1] onto (0, 1).
+        # Dither away from any colliding node; no-op otherwise, so unaffected
+        # SZAs are unchanged.
+        nodes = (np.polynomial.legendre.leggauss(self.nstr // 2)[0] + 1.0) / 2.0
+        if np.any(np.abs(nodes - ill_mu) / np.abs(ill_mu) < 1e-4):
+            ill_mu = np.clip(ill_mu * (1.0 + 2e-4), -1.0, 1.0)
         # DISORT phi0 is the azimuth of the beam's travel direction; Eradiate's
-        # illumination.azimuth is the sun's source direction — opposite by 180°.
+        # illumination.azimuth is the sun's source direction.
         ill_phi = (illumination.azimuth.m_as("deg") + 180.0) % 360.0
 
         # Control flags
