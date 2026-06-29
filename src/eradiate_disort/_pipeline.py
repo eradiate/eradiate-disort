@@ -61,14 +61,14 @@ _FIELD_DIMS: dict[str, list[str]] = {
 _FLUX_FIELDS = ["rfldir", "rfldn", "flup", "dfdt", "uavg", "uavgdn", "uavgup", "uavgso"]
 
 _FLUX_META = {
-    "rfldir": ("direct-beam downward irradiance", "W m-2 nm-1"),
-    "rfldn": ("diffuse downward irradiance", "W m-2 nm-1"),
-    "flup": ("diffuse upward irradiance", "W m-2 nm-1"),
+    "rfldir": ("direct-beam downward irradiance", "W m^-2 nm^-1"),
+    "rfldn": ("diffuse downward irradiance", "W m^-2 nm^-1"),
+    "flup": ("diffuse upward irradiance", "W m^-2 nm^-1"),
     "dfdt": ("flux divergence d(net flux)/d(tau)", "dimensionless"),
-    "uavg": ("mean intensity (direct + diffuse)", "W m-2 sr-1 nm-1"),
-    "uavgdn": ("mean diffuse downward intensity", "W m-2 sr-1 nm-1"),
-    "uavgup": ("mean diffuse upward intensity", "W m-2 sr-1 nm-1"),
-    "uavgso": ("mean direct-beam intensity", "W m-2 sr-1 nm-1"),
+    "uavg": ("mean intensity (direct + diffuse)", "W m^-2 sr^-1 nm^-1"),
+    "uavgdn": ("mean diffuse downward intensity", "W m^-2 sr^-1 nm^-1"),
+    "uavgup": ("mean diffuse upward intensity", "W m^-2 sr^-1 nm^-1"),
+    "uavgso": ("mean direct-beam intensity", "W m^-2 sr^-1 nm^-1"),
 }
 
 
@@ -265,7 +265,7 @@ def _build_radiance_dataset(
         {
             "long_name": "spectral radiance",
             "standard_name": "radiance_per_unit_wavelength",
-            "units": "W m-2 sr-1 nm-1",
+            "units": "W m^-2 sr^-1 nm^-1",
         }
     )
 
