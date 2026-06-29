@@ -13,6 +13,6 @@ __version__: str = _version
 __all__ = [
     "DisortBackend",
     "DisortMeasure",
-    "testing",
     "__version__",
+    "testing",
 ]
