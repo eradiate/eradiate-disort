@@ -253,9 +253,9 @@ class TestRun:
         """
         Flux-only measure over a multi-bin CKD grid.
 
-        Reproduces the example_09_fluxes.py failure: a usrang=False solve
-        makes CDISORT overwrite numu, which crashed the second spectral
-        iteration before the fix.
+        Reproduces a failure detected when building example_09_fluxes.py:
+        a usrang=False solve makes CDISORT overwrite numu, which crashes the
+        second spectral iteration before the fix.
         """
         srf = {"type": "uniform", "wmin": 600.0, "wmax": 610.0}
         exp = AtmosphereExperiment(
