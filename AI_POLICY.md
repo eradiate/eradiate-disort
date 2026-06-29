@@ -3,7 +3,7 @@
 The **eradiate-disort** project has the following rules for AI usage:
 
 - **All AI usage in any form must be disclosed.** You must state the model you
-- used along with the extent that the work was AI-assisted. Example:
+  used along with the extent that the work was AI-assisted. Example:
   *Claude Opus 4.8 for initial code generation*.
 
 - **The human-in-the-loop must fully understand all code.** If you can't explain
