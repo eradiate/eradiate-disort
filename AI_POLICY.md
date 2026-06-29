@@ -8,7 +8,7 @@ The **eradiate-disort** project has the following rules for AI usage:
 
 - **The human-in-the-loop must fully understand all code.** If you can't explain
   what your changes do and how they interact with the greater system without the
-  aid of AI tools, do not contribute to this project.
+  aid of AI tools, please do not contribute to this project.
 
 - **Issues and discussions can use AI assistance but must have a
   human-in-the-loop.** This means that any content generated with AI must have
@@ -20,7 +20,7 @@ The **eradiate-disort** project has the following rules for AI usage:
   and code are the only acceptable AI-generated content, per the other rules in
   this policy.
 
-These rules apply strictly only to outside contributions to **eradiate-disort**.
+These rules apply strictly to external contributions to **eradiate-disort**.
 Maintainers are trusted to apply good judgment when using AI tools and are not
 strictly subject to these rules, although they are encouraged to follow them.
 
@@ -28,20 +28,21 @@ strictly subject to these rules, although they are encouraged to follow them.
 
 Please remember that **eradiate-disort** is maintained by humans.
 
-Every discussion, issue, and pull request is read and reviewed by humans (and
-sometimes machines, too). It is a boundary point at which people interact with
-each other and the work done. It is rude and disrespectful to approach this
-boundary with low-effort, unqualified work, since it puts the burden of
-validation on the maintainer. The actual value of a contribution is the amount
-of human work that has been put in it, and this work should mostly come from the
-contributor — otherwise it's no different from maintainers implementing a fix or
-feature by themselves.
+Every discussion, issue, and pull request is read and reviewed by humans
+(sometimes with the assistance of machines). They should be approached with the
+understanding that a contribution is made valuable by the amount of human work
+that has been put in it — with or without AI assistance. Vibe coding rarely
+produces results that meet the quality requirements of this project: LLM output
+has to be worked on significantly to reach a state where a merge with the
+codebase can be considered. That work should come upstream of opening a PR, and
+not be offloaded to maintainers by putting them in a conversation with an LLM
+with the PR's author as an intermediary.
 
 ## We are not anti-AI, but...
 
 This codebase is written with AI assistance, applied with judgment, at a
 magnitude that allows maintainers to keep an understanding of the entire
-codebase. Inconsiderate usage of AI tools not only increases the burden for
+codebase. Inconsiderate usage of AI tools not only increases the burden on
 maintainers and degrades the understanding they have of their codebase, but also
 is an environmental threat and promotes cognitive atrophy.
 
