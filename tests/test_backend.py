@@ -321,6 +321,35 @@ class TestRun:
 
 
 # ------------------------------------------------------------------------------
+#                                DATA CONSISTENCY
+# ------------------------------------------------------------------------------
+
+
+class TestOutput:
+    def test_output_illumination(self, mode_ckd):
+        """
+        Check if the illumination geometry mentioned in the output is consistent
+        with Eradiate's conventions.
+        """
+        sza = 30.0
+        saa = 180.0
+        exp = AtmosphereExperiment(
+            geometry=plane_parallel(np.arange(0, 120.1, 1) * ureg.km, 120.0 * ureg.km),
+            surface={"type": "lambertian", "reflectance": 0.5},
+            atmosphere={
+                "type": "molecular",
+                "absorption_data": "mycena",
+            },
+            illumination={"type": "directional", "zenith": sza, "azimuth": saa},
+            measures={"type": "disort"},
+        )
+        result = ed.DisortBackend().run(exp)
+        ds = result["measure"].ds
+        np.testing.assert_approx_equal(ds["saa"].values, saa)
+        np.testing.assert_approx_equal(ds["sza"].values, sza)
+
+
+# ------------------------------------------------------------------------------
 #                           Numerical regressions
 # ------------------------------------------------------------------------------
 

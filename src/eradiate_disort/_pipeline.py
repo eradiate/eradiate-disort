@@ -208,6 +208,28 @@ def _build_flux_vars(
     return data_vars
 
 
+def _altitude_solar_coords(altitudes: pint.Quantity, umu0: float, phi0: float) -> dict:
+    """
+    Altitude + solar-geometry coords shared by both dataset builders.
+
+    ``saa`` converts DISORT ``phi0`` (beam travel direction) back to Eradiate's
+    source-direction convention (180° opposite).
+    """
+    return dict(
+        z=("z", altitudes.m_as("m"), {"long_name": "altitude", "units": "m"}),
+        sza=(
+            [],
+            float(np.rad2deg(np.arccos(umu0))),
+            {"long_name": "solar zenith angle", "units": "deg"},
+        ),
+        saa=(
+            [],
+            float((phi0 + 180.0) % 360.0),
+            {"long_name": "solar azimuth angle", "units": "deg"},
+        ),
+    )
+
+
 def _build_radiance_dataset(
     uu: xr.DataArray,
     flux_fields: dict[str, xr.DataArray],
@@ -233,7 +255,8 @@ def _build_radiance_dataset(
         Per-measure metadata: ``utau_indices``, ``altitudes``.
 
     geometry : dict
-        Solver geometry sourced from DisortState: ``umu``, ``phi``, ``umu0``, ``phi0``.
+        Solver geometry sourced from DisortState: ``umu``, ``phi``, ``umu0``,
+        ``phi0``.
 
     Returns
     -------
@@ -274,15 +297,9 @@ def _build_radiance_dataset(
 
     ds = xr.Dataset(data_vars)
     ds = ds.assign_coords(
-        z=("z", altitudes.m_as("m"), {"long_name": "altitude", "units": "m"}),
         vza=("vza", vza, {"long_name": "viewing zenith angle", "units": "deg"}),
         vaa=("vaa", phi, {"long_name": "viewing azimuth angle", "units": "deg"}),
-        sza=(
-            [],
-            float(np.rad2deg(np.arccos(umu0))),
-            {"long_name": "solar zenith angle", "units": "deg"},
-        ),
-        saa=([], float(phi0), {"long_name": "solar azimuth angle", "units": "deg"}),
+        **_altitude_solar_coords(altitudes, umu0, phi0),
     )
     return ds
 
@@ -318,15 +335,7 @@ def _build_flux_dataset(
 
     data_vars = _build_flux_vars(flux_fields, utau_idxs, altitudes)
     ds = xr.Dataset(data_vars)
-    ds = ds.assign_coords(
-        z=("z", altitudes.m_as("m"), {"long_name": "altitude", "units": "m"}),
-        sza=(
-            [],
-            float(np.rad2deg(np.arccos(umu0))),
-            {"long_name": "solar zenith angle", "units": "deg"},
-        ),
-        saa=([], float(phi0), {"long_name": "solar azimuth angle", "units": "deg"}),
-    )
+    ds = ds.assign_coords(**_altitude_solar_coords(altitudes, umu0, phi0))
     return ds
 
 
