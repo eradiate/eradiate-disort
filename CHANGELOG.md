@@ -2,7 +2,10 @@
 
 ---
 
-## v0.2.0 (upcoming release)
+## v1.0.0 (1st July 2026)
+
+This is a milestone release that marks the transition of this package to a
+stable status. The main API entry points should not change significantly.
 
 ### Fixed
 
