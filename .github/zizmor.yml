@@ -1,0 +1,8 @@
+# zizmor configuration -- https://docs.zizmor.sh/configuration/
+rules:
+  unpinned-uses:
+    config:
+      policies:
+        # Actions are pinned to tags and kept current by Dependabot (see
+        # dependabot.yml); hash pinning would defeat the grouped tag updates.
+        "*": ref-pin
