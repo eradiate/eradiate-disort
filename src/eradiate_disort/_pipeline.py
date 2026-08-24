@@ -215,19 +215,19 @@ def _altitude_solar_coords(altitudes: pint.Quantity, umu0: float, phi0: float) -
     ``saa`` converts DISORT ``phi0`` (beam travel direction) back to Eradiate's
     source-direction convention (180° opposite).
     """
-    return dict(
-        z=("z", altitudes.m_as("m"), {"long_name": "altitude", "units": "m"}),
-        sza=(
+    return {
+        "z": ("z", altitudes.m_as("m"), {"long_name": "altitude", "units": "m"}),
+        "sza": (
             [],
             float(np.rad2deg(np.arccos(umu0))),
             {"long_name": "solar zenith angle", "units": "deg"},
         ),
-        saa=(
+        "saa": (
             [],
             float((phi0 + 180.0) % 360.0),
             {"long_name": "solar azimuth angle", "units": "deg"},
         ),
-    )
+    }
 
 
 def _build_radiance_dataset(
