@@ -12,9 +12,11 @@ The project is managed with **pixi**. `eradiate` is pulled from PyPI (with the `
 
 - `ext/nanodisort` — CDISORT bindings (editable)
 
+`[project.dependencies]` still declares a released version range for `nanodisort`, which the submodule (a release candidate, say) may not satisfy. `[tool.pixi.feature.dev.pypi-options].dependency-overrides` rewrites that requirement to the local path so the `dev` environment tracks the submodule whatever it is pinned to; the `[tool.pixi.feature.dev.pypi-dependencies]` entry is what makes the install editable, so both are needed.
+
 After cloning, initialise the submodule (`git submodule update --init --recursive`). The pixi `dev` activation runs `scripts/set-macos-deployment-target.sh` (no-op off macOS; pins `MACOSX_DEPLOYMENT_TARGET` so locally built `nanodisort` wheel tags match uv's acceptance ceiling) and sets `ERADIATE_PATH=tests/data`.
 
-Environments: `default` (`py312` + `test` + `docs` + `dev` — the working environment) plus the CI environments `ghapy310`–`ghapy313` (`pyXXX` + `kernel` + `test`, one per supported interpreter).
+Environments: `default` (`py310` + `test` + `docs` + `dev` — the working environment) plus the CI environments `ghapy310`–`ghapy313` (`pyXXX` + `kernel` + `test`, one per supported interpreter).
 
 ## Common commands
 
@@ -22,7 +24,7 @@ Run via `pixi run <task>`. Tasks are defined per feature in `pyproject.toml`: `t
 
 - `pixi run test` — run the test suite (sets `MPLBACKEND=Agg`, `ERADIATE_TEST_MODE=test`). Benchmarks are excluded by default.
 - `pixi run bench` — run benchmarks in `tests/benchmarks` (`ERADIATE_TEST_MODE=benchmark`).
-- `pixi run lint` — `ruff check`. `pixi run lint-ext` adds extended rule sets (B, C4, SIM, PIE, UP, PERF, NPY, RUF). `pixi run lint-reuse` runs `reuse lint` (SPDX/license compliance).
+- `pixi run lint` — `ruff check`. `pixi run lint-ext` adds extended rule sets (C4, SIM, PIE, PERF, NPY, RUF) on top of the configured ones. `pixi run lint-reuse` runs `reuse lint` (SPDX/license compliance).
 - `pixi run docs` / `docs-serve` / `docs-clean` — build / live-serve / clean Sphinx docs.
 - `pixi run nb-execute-all` — execute the example notebooks (`ERADIATE_TEST_MODE=tutorial`).
 
@@ -83,6 +85,6 @@ Sphinx + shibuya theme + MyST-NB, deployed on Read The Docs. Example notebook ou
 
 ## Conventions
 
-- Ruff for lint+format (rules `E`, `F`, `I`; example notebooks excluded). Numpydoc docstrings. Type hints in signatures. Private modules are underscore-prefixed; public API is re-exported from `__init__.py` (`DisortBackend`, `DisortMeasure`).
+- Ruff for lint+format (rules `E`, `F`, `I`, `B`, `UP`; example notebooks excluded). Numpydoc docstrings. Type hints in signatures. Private modules are underscore-prefixed; public API is re-exported from `__init__.py` (`DisortBackend`, `DisortMeasure`).
 - All source files carry SPDX headers (`GPL-3.0-or-later`, copyright Rayference); REUSE-compliant.
-- pre-commit runs ruff (check+format), taplo (TOML), and nbstripout.
+- pre-commit runs the standard pre-commit-hooks set, ruff (check+format), zizmor (GitHub Actions), taplo (TOML), nbstripout, and bibtex-tidy.
