@@ -4,6 +4,13 @@
 
 ## v1.1.0 (upcoming release)
 
+### Added
+
+- Support for spherical-shell geometries: an experiment configured with a
+  `SphericalShellGeometry` now enables CDISORT's pseudo-spherical correction,
+  which applies the Chapman airmass to the direct beam. Plane-parallel
+  experiments are unaffected.
+
 ## Improved
 
 - nanodisort is updated to v0.3.0, which brings pseudo-spherical correction

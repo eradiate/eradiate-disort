@@ -26,7 +26,9 @@ compared to the original Fortran implementation of DISORT.
 
 Using the DISORT backend is recommended if:
 
-- You are simulating radiative transfer in a 1D plane-parallel geometry.
+- You are simulating radiative transfer in a 1D geometry, either
+  plane-parallel or spherical-shell (the latter enables the pseudo-spherical
+  correction of the direct beam).
 - You don't need to account for polarization (CDISORT simulates only radiative
   intensity).
 

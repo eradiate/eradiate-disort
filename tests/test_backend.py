@@ -40,6 +40,16 @@ def plane_parallel(zgrid, toa_altitude) -> dict:
     }
 
 
+def spherical_shell(zgrid, toa_altitude, **kwargs) -> dict:
+    """Spherical-shell geometry dict for the given altitude grid and TOA."""
+    return {
+        "type": "spherical_shell",
+        "toa_altitude": toa_altitude,
+        "zgrid": zgrid,
+        **kwargs,
+    }
+
+
 def make_exp(**overrides) -> AtmosphereExperiment:
     """Build a minimal valid DISORT experiment, overriding selected fields."""
     cfg = {
@@ -96,6 +106,41 @@ class TestStateConfiguration:
         assert state.planck is False
         assert state.usrtau is True
         assert state.quiet is True
+        assert state.spher is False  # plane-parallel geometry
+
+    def test_spherical_shell_flags(self, mode_mono):
+        # A spherical-shell geometry enables the pseudo-spherical correction
+        exp = make_exp(
+            geometry=spherical_shell(np.linspace(0, 100, 11) * ureg.km, 100.0 * ureg.km)
+        )
+        state, _, _ = configure_state(ed.DisortBackend(), exp)
+        assert state.spher is True
+        assert state.radius == pytest.approx(exp.geometry.planet_radius.m_as("km"))
+
+        # Level heights above the ground, top-to-bottom, in the unit of radius
+        zd = np.array(state.zd)
+        assert len(zd) == 11
+        assert zd[0] == pytest.approx(100.0)
+        assert zd[-1] == 0.0  # nanodisort checks this exactly
+        assert np.all(np.diff(zd) < 0.0)
+
+    def test_spherical_shell_ground_altitude(self, mode_mono):
+        # zd = 0 sits on the ground surface, whose radius includes the ground
+        # altitude
+        exp = make_exp(
+            geometry=spherical_shell(
+                np.linspace(1, 11, 11) * ureg.km,
+                11.0 * ureg.km,
+                ground_altitude=1.0 * ureg.km,
+            )
+        )
+        state, _, _ = configure_state(ed.DisortBackend(), exp)
+        assert state.radius == pytest.approx(
+            exp.geometry.planet_radius.m_as("km") + 1.0
+        )
+        zd = np.array(state.zd)
+        assert zd[0] == pytest.approx(10.0)
+        assert zd[-1] == 0.0
 
     def test_verbose_controls_quiet(self, mode_mono):
         state, _, _ = configure_state(ed.DisortBackend(verbose=True), make_exp())

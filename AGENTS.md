@@ -38,7 +38,7 @@ Regenerate regression reference data: append `--force-regen` (pytest-regressions
 
 `DisortBackend.run()` (`src/eradiate_disort/_backend.py`) drives three stages, mirroring Eradiate's experiment lifecycle:
 
-1. **`validate(exp)`** — rejects unsupported configurations early. The backend only supports: `DirectionalIllumination`, `LambertianBSDF` surface, atmospheres in `{Molecular, ParticleLayer, Heterogeneous, Homogeneous}`, `DisortMeasure` measures, and at most one radiance-mode measure (DISORT has a single shared `umu`/`phi` grid).
+1. **`validate(exp)`** — rejects unsupported configurations early. The backend only supports: `DirectionalIllumination`, `LambertianBSDF` surface, atmospheres in `{Molecular, ParticleLayer, Heterogeneous, Homogeneous}`, `DisortMeasure` measures, and at most one radiance-mode measure (DISORT has a single shared `umu`/`phi` grid). Both scene geometries are accepted; a `SphericalShellGeometry` sets `spher`/`radius`/`zd` and enables CDISORT's pseudo-spherical correction of the direct beam.
 2. **`process(exp)`** — `_setup_global` (spectral-independent setup, classifies measures, sets illumination/control flags, sizes the phase grid) then a spectral loop calling `_setup_spectral` → `_solve` → `_collect_results` per spectral context. Raw per-spectral DISORT output dicts are accumulated in `self._results`.
 3. **`postprocess(exp)`** — runs the pipeline (`_pipeline.py`) to convert raw results into an `xarray.DataTree` with one subtree per measure (keyed by measure ID).
 
@@ -55,6 +55,7 @@ These are the subtle parts; the actual translation lives in `_backend.py` and `_
 - **Intensity correction**: `buras_emde` (default) needs actual phase function values and pads the μ-phase grid with sentinel points at both ends (`±(1+eps)`); the `+2` to `nphase` in `_setup_global` accounts for these. `nakajima_tanaka` uses only Legendre moments. See the `project_buras_emde` memory.
 - **Phase moments**: Eradiate's particle data stores `(2l+1)·f_l`; DISORT wants `f_l`, so `_phase.py` divides by `(2l+1)` and truncates/zero-pads to `nmom+1`.
 - **Homogeneous atmospheres** return scalar optical properties — broadcast them to `nlyr` before assigning.
+- **Pseudo-spherical geometry**: `spher` and `radius` are scalars set in `_setup_global`; `zd` is an array and can only be assigned after `allocate()`, so it lives in `_setup_spectral`. `zd` holds level heights above the *ground surface*, top-to-bottom, with `zd[nlyr]` exactly `0` (nanodisort checks this). `radius` is `planet_radius + ground_altitude` (that is the radius of the sphere `zd = 0` sits on), in the same length unit as `zd` (km).
 - **Allocation**: `ds.allocate()` is called exactly once (`first_call=True`), after `ntau` is known and before any array assignment. Do not assign DISORT arrays before allocation.
 
 ### Components
