@@ -2,6 +2,13 @@
 
 ---
 
+## v1.1.0 (upcoming release)
+
+## Improved
+
+- nanodisort is updated to v0.3.0, which brings pseudo-spherical correction
+  support.
+
 ## v1.0.0 (1st July 2026)
 
 This is a milestone release that marks the transition of this package to a
