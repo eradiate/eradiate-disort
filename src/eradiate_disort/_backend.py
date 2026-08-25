@@ -24,6 +24,7 @@ from eradiate.scenes.atmosphere import (
     ParticleLayer,
 )
 from eradiate.scenes.bsdfs import LambertianBSDF
+from eradiate.scenes.geometry import SphericalShellGeometry
 from eradiate.scenes.illumination import DirectionalIllumination
 from eradiate.units import unit_registry as ureg
 
@@ -46,7 +47,10 @@ class DisortBackend:
     the CDISORT implementation of the DISORT algorithm. It supports 1D scenes
     with atmospheres featuring an arbitrary number of components and can
     generally be used as a fast alternative to the Monte Carlo ray tracing
-    backend on plane-parallel geometries.
+    backend. Plane-parallel and spherical-shell geometries are both supported;
+    the latter activates CDISORT's pseudo-spherical correction, which applies
+    the Chapman airmass to the direct beam (the diffuse field remains
+    plane-parallel).
 
     Parameters
     ----------
@@ -201,6 +205,16 @@ class DisortBackend:
         ds.planck = False
         ds.usrang = has_radiance
         ds.onlyfl = not has_radiance
+
+        # Pseudo-spherical correction, triggered by a spherical-shell geometry
+        geometry = exp.geometry
+        ds.spher = isinstance(geometry, SphericalShellGeometry)
+        if ds.spher:
+            # zd is measured from the ground surface, whose radius is the planet
+            # radius offset by the ground altitude (cf. SphereShape.surface)
+            ds.radius = (geometry.planet_radius + geometry.ground_altitude).m_as(
+                ureg.km
+            )
 
         # Intensity correction method
         if self.intensity_correction == "buras_emde":
@@ -357,6 +371,10 @@ class DisortBackend:
         ds.umu = run_ctx["mes_mu"]
         ds.phi = run_ctx["mes_phi"]
         ds.utau = merged_utau
+
+        if ds.spher:
+            # Level heights above the ground, top-to-bottom, in the unit of ds.radius
+            ds.zd = (zgrid.levels - zgrid.levels[0]).m_as(ureg.km)[::-1]
 
         ds.fbeam = irradiance
         ds.umu0 = run_ctx["ill_mu"]

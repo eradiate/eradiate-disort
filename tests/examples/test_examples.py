@@ -54,3 +54,10 @@ def test_07_spectrum(er_plt):  # noqa: F811
 
     # TODO: Currently only a smoke test, add assert
     print(result_disort)
+
+
+def test_10_spherical(er_plt):  # noqa: F811
+    from .example_10_spherical import results
+
+    # TODO: Currently only a smoke test, add regression assertions
+    assert results

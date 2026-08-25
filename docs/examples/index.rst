@@ -15,3 +15,4 @@ These notebooks show examples of backend usage.
    example_07_spectrum
    example_08_altitude
    example_09_fluxes
+   example_10_spherical

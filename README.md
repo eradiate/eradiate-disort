@@ -17,14 +17,15 @@ A DISORT radiometric backend for the [Eradiate](https://github.com/eradiate/erad
 ## Overview
 
 This project lets Eradiate experiments be solved with DISORT instead of Monte
-Carlo ray tracing, providing a fast radiometric backend for 1D plane-parallel
-scenes. The solver is reached through the [nanodisort](https://github.com/eradiate/nanodisort)
+Carlo ray tracing, providing a fast radiometric backend for 1D scenes with
+plane-parallel or spherical-shell geometry. The solver is reached through the [nanodisort](https://github.com/eradiate/nanodisort)
 bindings to CDISORT, a C port of the original DISORT software.
 
 ## Main features
 
-- Computes radiances and fluxes for 1D plane-parallel atmospheres (no
-  polarization).
+- Computes radiances and fluxes for 1D atmospheres (no polarization).
+- Applies CDISORT's pseudo-spherical correction to the direct beam when the
+  experiment uses a spherical-shell geometry.
 - Drives an Eradiate experiment end-to-end, returning results as an
   `xarray.DataTree`.
 - Supports Eradiate's `mono` and `ckd` spectral modes.
