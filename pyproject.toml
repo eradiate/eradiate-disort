@@ -85,6 +85,11 @@ pixi-pycharm = ">=0.0.11,<0.0.12"
 nanodisort = { path = "ext/nanodisort", editable = true }
 eradiate = { extras = ["kernel", "recommended"] }
 
+[tool.pixi.feature.dev.pypi-options]
+# Ignore the version constraint declared in [project.dependencies]: the dev
+# environment always uses whatever the ext/nanodisort submodule is pinned to.
+dependency-overrides = { nanodisort = { path = "ext/nanodisort", editable = true } }
+
 [tool.pixi.feature.py310.dependencies]
 python = "3.10.*"
 
