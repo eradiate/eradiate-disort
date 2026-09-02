@@ -20,7 +20,7 @@
 #
 # This notebook compares the output of Eradiate's Mitsuba and DISORT backends for flux computation.
 
-# %%
+# %% tags=["remove-cell"]
 # Documentation-specific setup, hidden from notebook output
 
 # %matplotlib inline
