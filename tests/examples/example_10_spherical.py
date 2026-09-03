@@ -38,7 +38,6 @@ sns.set_theme(style="ticks")
 import eradiate
 import matplotlib.pyplot as plt
 import numpy as np
-import xarray as xr
 from eradiate.experiments import AtmosphereExperiment
 from eradiate.units import unit_registry as ureg
 
