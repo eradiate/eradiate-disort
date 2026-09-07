@@ -2,7 +2,7 @@
 
 ---
 
-## v1.1.0 (upcoming release)
+## v1.1.0 (7th September 2026)
 
 ### Added
 
