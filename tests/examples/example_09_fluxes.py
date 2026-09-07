@@ -15,12 +15,12 @@
 #     name: python3
 # ---
 
-# %% [markdown]
+# %% [markdown] editable=true slideshow={"slide_type": ""}
 # # Flux example
 #
 # This notebook compares the output of Eradiate's Mitsuba and DISORT backends for flux computation.
 
-# %% tags=["remove-cell"]
+# %% editable=true slideshow={"slide_type": ""} tags=["remove-cell"]
 # Documentation-specific setup, hidden from notebook output
 
 # %matplotlib inline
