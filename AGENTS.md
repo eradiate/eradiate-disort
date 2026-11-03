@@ -1,4 +1,4 @@
-# CLAUDE.md
+# AGENTS.md
 
 This file provides guidance to coding agents when working with code in this repository.
 
@@ -89,3 +89,4 @@ Sphinx + shibuya theme + MyST-NB, deployed on Read The Docs. Example notebook ou
 - Ruff for lint+format (rules `E`, `F`, `I`, `B`, `UP`; example notebooks excluded). Numpydoc docstrings. Type hints in signatures. Private modules are underscore-prefixed; public API is re-exported from `__init__.py` (`DisortBackend`, `DisortMeasure`).
 - All source files carry SPDX headers (`GPL-3.0-or-later`, copyright Rayference); REUSE-compliant.
 - pre-commit runs the standard pre-commit-hooks set, ruff (check+format), zizmor (GitHub Actions), taplo (TOML), nbstripout, and bibtex-tidy.
+- Do not add AI attribution trailers (e.g. `Co-Authored-By: Claude`) to commit messages.

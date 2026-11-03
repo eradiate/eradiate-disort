@@ -86,9 +86,6 @@ editable Pixi dependency:
     The ``nanodisort`` bindings to CDISORT (the C port of DISORT) through which
     the solver is reached.
 
-Because it is an editable install, changes made in the submodule tree are
-picked up without reinstalling.
-
 Activation
 ^^^^^^^^^^
 
@@ -472,8 +469,8 @@ Publishing
 ^^^^^^^^^^
 
 The ``.github/workflows/cd.yml`` workflow builds the wheel and sdist and
-publishes to PyPI. It is triggered manually with an ``upload`` input: ``0``
-builds only, ``1`` publishes to PyPI, ``2`` publishes to TestPyPI. The usual
+publishes to PyPI. It is triggered manually with an ``upload`` input: that
+controls whether it will be uploaded to PyPI, TestPyPI or not. The usual
 release sequence is:
 
 1. bump;

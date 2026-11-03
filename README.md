@@ -4,7 +4,6 @@
 [![ci][ci-badge]][ci-url]
 [![docs][docs-badge]][docs-url]
 
-
 [pypi-badge]: https://img.shields.io/pypi/v/eradiate-disort?style=flat-square&color=blue
 [pypi-url]: https://pypi.org/project/eradiate-disort/
 [ci-badge]: https://img.shields.io/github/actions/workflow/status/eradiate/eradiate-disort/test.yml?branch=main&style=flat-square
@@ -18,8 +17,9 @@ A DISORT radiometric backend for the [Eradiate](https://github.com/eradiate/erad
 
 This project lets Eradiate experiments be solved with DISORT instead of Monte
 Carlo ray tracing, providing a fast radiometric backend for 1D scenes with
-plane-parallel or spherical-shell geometry. The solver is reached through the [nanodisort](https://github.com/eradiate/nanodisort)
-bindings to CDISORT, a C port of the original DISORT software.
+plane-parallel or spherical-shell geometry. The solver is reached through the
+[nanodisort](https://github.com/eradiate/nanodisort) bindings to CDISORT, a C
+port of the original DISORT software.
 
 ## Main features
 
