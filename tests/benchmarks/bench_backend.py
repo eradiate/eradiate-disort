@@ -80,6 +80,6 @@ class BenchCkdFull:
         exp = cases.full_atmo(sza=30.0, backend="disort")
         benchmark(backend.run, exp)
 
-    def bench_bench_full_atmo_mitsuba(self, benchmark, mode_ckd):
+    def bench_full_atmo_mitsuba(self, benchmark, mode_ckd):
         exp = cases.full_atmo(sza=30.0, backend="mitsuba")
         benchmark(eradiate.run, exp)
