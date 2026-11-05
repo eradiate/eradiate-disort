@@ -45,14 +45,13 @@ from eradiate_disort.util import disort_reshape_pplane
 
 eradiate.set_mode("ckd")
 
-SPP = 1_000
+SPP = 10_000
 
 # %% tags=["remove-cell"]
 # Dev-specific setup, hidden from notebook output
 
 plt = TestMode.plt()
-_base_spp = TestMode.spp(tutorial=1_000, test=1_000)
-SPP = _base_spp // 16 if eradiate.get_mode().is_ckd else _base_spp
+SPP = TestMode.spp(tutorial=10_000, test=10_000)
 
 # %%
 # Experiment parameters
@@ -61,7 +60,7 @@ zeniths = np.arange(-75.0, 76.0, 1.0)
 srf = {"type": "delta", "wavelengths": [550.0]}
 geometry = {
     "type": "plane_parallel",
-    "zgrid": ([0.0, 1.0] * ureg.km).to("m"),
+    "grid": ([0.0, 1.0] * ureg.km).to("m"),
     "toa_altitude": 1.0 * ureg.km,
 }
 surface = {"type": "lambertian", "reflectance": 0.5}

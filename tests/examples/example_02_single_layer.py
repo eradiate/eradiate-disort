@@ -49,7 +49,7 @@ SZA = 30.0
 PHASES = ["isotropic", "rayleigh"]
 ZENITHS = np.arange(-75.0, 76.0, 1.0)
 SRF = {"type": "delta", "wavelengths": [550.0]}
-SPP = 1_000
+SPP = 10_000
 
 # %% tags=["remove-cell"]
 # Dev-specific setup, hidden from notebook output
@@ -57,8 +57,7 @@ SPP = 1_000
 from eradiate_disort.testing import TestMode
 
 plt = TestMode.plt()
-_base_spp = TestMode.spp(tutorial=1_000, test=10_000)
-SPP = _base_spp // 16 if eradiate.get_mode().is_ckd else _base_spp
+SPP = TestMode.spp(tutorial=10_000, test=100_000)
 
 # %%
 results = {}
@@ -69,7 +68,7 @@ for phase in PHASES:
         geometry={
             "type": "plane_parallel",
             "toa_altitude": 1.0 * ureg.km,
-            "zgrid": np.linspace(0, 1, 2) * ureg.km,
+            "grid": np.linspace(0, 1, 2) * ureg.km,
         },
         surface={"type": "lambertian", "reflectance": 0.0},
         atmosphere={"type": "homogeneous", "phase": {"type": phase}},
@@ -89,7 +88,7 @@ for phase in PHASES:
         geometry={
             "type": "plane_parallel",
             "toa_altitude": 1.0 * ureg.km,
-            "zgrid": np.linspace(0, 1, 2) * ureg.km,
+            "grid": np.linspace(0, 1, 2) * ureg.km,
         },
         surface={"type": "lambertian", "reflectance": 0.0},
         atmosphere={"type": "homogeneous", "phase": {"type": phase}},
@@ -155,7 +154,7 @@ for phase in ["rayleigh"]:
         geometry={
             "type": "plane_parallel",
             "toa_altitude": 1.0 * ureg.km,
-            "zgrid": np.linspace(0, 1, 2) * ureg.km,
+            "grid": np.linspace(0, 1, 2) * ureg.km,
         },
         surface={"type": "lambertian", "reflectance": 0.0},
         atmosphere={"type": "homogeneous", "phase": {"type": phase}},
@@ -174,7 +173,7 @@ for phase in ["rayleigh"]:
         geometry={
             "type": "plane_parallel",
             "toa_altitude": 1.0 * ureg.km,
-            "zgrid": np.linspace(0, 1, 2) * ureg.km,
+            "grid": np.linspace(0, 1, 2) * ureg.km,
         },
         surface={"type": "lambertian", "reflectance": 0.0},
         atmosphere={"type": "homogeneous", "phase": {"type": phase}},

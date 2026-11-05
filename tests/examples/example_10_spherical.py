@@ -49,7 +49,7 @@ eradiate.set_mode("ckd")
 # Experiment parameters
 SZA = 85.0
 ZENITHS = np.arange(-85.0, 86.0, 1.0)
-SPP = 100_000
+SPP = 1_000_000
 
 # %% tags=["remove-cell"]
 # Dev-specific setup, hidden from notebook output
@@ -57,7 +57,7 @@ SPP = 100_000
 from eradiate_disort.testing import TestMode
 
 plt = TestMode.plt()
-SPP = TestMode.spp(tutorial=100_000, test=1_000)
+SPP = TestMode.spp(tutorial=1_000_000, test=10_000)
 
 
 # %%
@@ -86,7 +86,7 @@ def make_exp(geometry, backend="disort"):
         geometry={
             "type": geometry,
             "toa_altitude": 100.0 * ureg.km,
-            "zgrid": np.linspace(0, 100, 101) * ureg.km,
+            "grid": np.linspace(0, 100, 101) * ureg.km,
         },
         surface={"type": "lambertian", "reflectance": 0.0},
         atmosphere={

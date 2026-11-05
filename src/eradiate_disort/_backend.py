@@ -21,7 +21,7 @@ from eradiate.scenes.atmosphere import (
     HeterogeneousAtmosphere,
     HomogeneousAtmosphere,
     MolecularAtmosphere,
-    ParticleLayer,
+    ParticleOTComponent,
 )
 from eradiate.scenes.bsdfs import LambertianBSDF
 from eradiate.scenes.geometry import SphericalShellGeometry
@@ -137,7 +137,7 @@ class DisortBackend:
         # Atmosphere: only heterogeneous atmospheres are supported
         allowed = (
             MolecularAtmosphere,
-            ParticleLayer,
+            ParticleOTComponent,
             HeterogeneousAtmosphere,
             HomogeneousAtmosphere,
         )
@@ -146,6 +146,13 @@ class DisortBackend:
                 "EradiateDisortBackend requires one of "
                 f"[{', '.join([f'{x.__name__}' for x in allowed])}], "
                 f"got {type(exp.atmosphere).__name__}"
+            )
+
+        # DISORT is 1D: the atmosphere grid must be a single column
+        if exp.atmosphere is not None and not exp.atmosphere.geometry.grid.is_1d:
+            raise ValueError(
+                "EradiateDisortBackend requires a single-column atmosphere grid, "
+                f"got shape {exp.atmosphere.geometry.grid.shape}"
             )
 
     def _setup_global(
@@ -234,7 +241,7 @@ class DisortBackend:
             ds.old_intensity_correction = True
 
         # Atmosphere layer count
-        ds.nlyr = exp.atmosphere.geometry.zgrid.n_layers if exp.atmosphere else 1
+        ds.nlyr = exp.atmosphere.geometry.grid.n_layers if exp.atmosphere else 1
         ds.nstr = self.nstr
         ds.nmom = self.nmom
 
@@ -299,15 +306,15 @@ class DisortBackend:
 
         # --- Compute values (no array assignments yet — memory may not be allocated)
         if atmosphere is not None:
-            h = atmosphere.geometry.zgrid.layer_height
+            h = atmosphere.geometry.grid.layer_height
             sigma_t = atmosphere.eval_sigma_t(ctx.si)
-            tau_btt = np.atleast_1d((sigma_t * h).m_as("dimensionless"))
+            tau_btt = np.ravel((sigma_t * h).m_as("dimensionless"))
 
             _dither = 100.0 * np.finfo(float).eps
-            ssalb = np.atleast_1d(atmosphere.eval_albedo(ctx.si).m_as("dimensionless"))
+            ssalb = np.ravel(atmosphere.eval_albedo(ctx.si).m_as("dimensionless"))
             ssalb = np.minimum(ssalb, 1.0 - _dither)
 
-            zgrid = atmosphere.geometry.zgrid
+            zgrid = atmosphere.geometry.grid
 
             # Homogeneous atmospheres return scalar optical properties; broadcast
             # them across all layers so the arrays match DISORT's nlyr.
@@ -320,9 +327,9 @@ class DisortBackend:
             tau_btt = np.array([0.0])
             ssalb = np.array([0.0])
             # Minimal two-level zgrid for altitude resolution when no atmosphere
-            from eradiate.radprops import ZGrid
+            from eradiate.grid import CartesianGrid
 
-            zgrid = ZGrid([0.0, 1.0] * ureg.m)
+            zgrid = CartesianGrid.from_levels([0.0, 1.0] * ureg.m)
 
         pmom = get_pmom(atmosphere, ds.nmom, ctx)[:, ::-1]
 

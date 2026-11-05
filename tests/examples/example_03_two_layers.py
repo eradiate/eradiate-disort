@@ -38,7 +38,8 @@ import numpy as np
 import xarray as xr
 from eradiate.contexts import KernelContext
 from eradiate.experiments import AtmosphereExperiment
-from eradiate.radprops import ArrayRadProfile, ZGrid
+from eradiate.grid import CartesianGrid
+from eradiate.radprops import ArrayRadProfile
 from eradiate.units import unit_registry as ureg
 
 import eradiate_disort as ed
@@ -49,7 +50,7 @@ eradiate.set_mode("mono")
 # Experiment parameters
 SZA = 30.0
 ZENITHS = np.arange(-75.0, 76.0, 1.0)
-SPP = 1_000
+SPP = 10_000
 
 # %% tags=["remove-cell"]
 # Dev-specific setup, hidden from notebook output
@@ -57,7 +58,7 @@ SPP = 1_000
 from eradiate_disort.testing import TestMode
 
 plt = TestMode.plt()
-SPP = TestMode.spp(tutorial=1_000, test=10_000)
+SPP = TestMode.spp(tutorial=10_000, test=100_000)
 
 # %% [markdown]
 # ## Radiative profile
@@ -67,7 +68,7 @@ SPP = TestMode.spp(tutorial=1_000, test=10_000)
 # and scattering coefficients are built explicitly below.
 
 # %%
-zgrid = ZGrid(np.linspace(0, 100e3, 11) * ureg.m)
+zgrid = CartesianGrid.from_levels(np.linspace(0, 100e3, 11) * ureg.m)
 sigma_ref = 0.5 / zgrid.total_height  # extinction for a total optical thickness of 0.5
 
 
@@ -99,7 +100,7 @@ exp = AtmosphereExperiment(
     geometry={
         "type": "plane_parallel",
         "toa_altitude": 100.0 * ureg.km,
-        "zgrid": zgrid,
+        "grid": zgrid,
     },
     surface={"type": "lambertian", "reflectance": 0.0},
     atmosphere={
@@ -124,7 +125,9 @@ exp = AtmosphereExperiment(
 )
 
 ctx = KernelContext()
-radprops = exp.atmosphere.eval_radprops(ctx.si, optional_fields=True)
+radprops = exp.atmosphere.eval_radprops(ctx.si, optional_fields=True).squeeze(
+    ["x_cell", "y_cell"]
+)
 h = zgrid.layer_height.m_as("m")
 tau_a = np.atleast_1d(radprops["sigma_a"] * h)
 tau_s = np.atleast_1d(radprops["sigma_s"] * h)
@@ -199,7 +202,7 @@ for case_id, kwargs in CASES.items():
         geometry={
             "type": "plane_parallel",
             "toa_altitude": 100.0 * ureg.km,
-            "zgrid": zgrid,
+            "grid": zgrid,
         },
         surface={"type": "lambertian", "reflectance": surface_reflectance},
         atmosphere={
@@ -229,7 +232,7 @@ for case_id, kwargs in CASES.items():
         geometry={
             "type": "plane_parallel",
             "toa_altitude": 100.0 * ureg.km,
-            "zgrid": zgrid,
+            "grid": zgrid,
         },
         surface={"type": "lambertian", "reflectance": surface_reflectance},
         atmosphere={

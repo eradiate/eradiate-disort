@@ -23,7 +23,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest]
-        environment: [ghapy310, ghapy311, ghapy312, ghapy313]
+        environment: [ghapy310, ghapy311, ghapy312, ghapy313, ghapy314]
 
     steps:
       - uses: actions/checkout@v7

@@ -10,7 +10,7 @@
 #       format_version: '1.3'
 #       jupytext_version: 1.19.3
 #   kernelspec:
-#     display_name: eradiate-disort (pixi dev)
+#     display_name: eradiate-disort (pixi)
 #     language: python
 #     name: eradiate-disort
 # ---
@@ -124,13 +124,13 @@ def experiment(backend, wmin=600.0, wmax=610.0, tau_ref=0.0):
         geometry={
             "type": "plane_parallel",
             "toa_altitude": 120.0 * ureg.km,
-            "zgrid": np.linspace(0, 120, 121) * ureg.km,
+            "grid": np.linspace(0, 120, 121) * ureg.km,
         },
         surface={"type": "lambertian", "reflectance": albedo_spectrum},
         atmosphere={
             "type": "heterogeneous",
             "molecular_atmosphere": {"absorption_data": ABSORPTION_DB},
-            "particle_layers": particle_layer,
+            "particle_components": particle_layer,
         },
         illumination={
             "type": "directional",
@@ -154,7 +154,7 @@ exp_kwargs = {"wmin": 600.0, "wmax": 650.0, "tau_ref": 0.0}
 # exp_kwargs = {"wmin": 600.0, "wmax": 650.0, "tau_ref": 10.0}
 
 exp_mitsuba = experiment("mitsuba", **exp_kwargs)
-eradiate.run(exp_mitsuba, spp=10_000)
+eradiate.run(exp_mitsuba, spp=100_000)
 result_mitsuba = exp_mitsuba.results
 
 exp_disort = experiment("disort", **exp_kwargs)
@@ -339,5 +339,3 @@ ax.legend()
 
 plt.show()
 plt.close()
-
-# %%

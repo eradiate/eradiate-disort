@@ -24,7 +24,7 @@ from eradiate.scenes.measure import (
 from numpy.typing import ArrayLike
 
 if TYPE_CHECKING:
-    from eradiate.radprops import ZGrid
+    from eradiate.grid import SpatialGrid
 
 
 def _extract_kwargs(kwargs: dict, keys: list[str]) -> dict:
@@ -38,7 +38,7 @@ def _utau_from_spec(
     z_levels: pint.Quantity | None,
     utau: np.ndarray | None,
     tau_btt: np.ndarray,
-    zgrid: ZGrid,
+    zgrid: SpatialGrid,
 ) -> tuple[np.ndarray, pint.Quantity]:
     """
     Resolve a user altitude or optical-depth specification to DISORT utau values.
@@ -60,7 +60,7 @@ def _utau_from_spec(
     tau_btt : ndarray
         Per-layer optical depths in bottom-to-top order, shape ``(n_layers,)``.
 
-    zgrid : ZGrid
+    zgrid : SpatialGrid
         Atmospheric altitude grid.
 
     Returns

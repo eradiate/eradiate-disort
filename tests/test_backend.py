@@ -36,7 +36,7 @@ def plane_parallel(zgrid, toa_altitude) -> dict:
     return {
         "type": "plane_parallel",
         "toa_altitude": toa_altitude,
-        "zgrid": zgrid,
+        "grid": zgrid,
     }
 
 
@@ -45,7 +45,7 @@ def spherical_shell(zgrid, toa_altitude, **kwargs) -> dict:
     return {
         "type": "spherical_shell",
         "toa_altitude": toa_altitude,
-        "zgrid": zgrid,
+        "grid": zgrid,
         **kwargs,
     }
 

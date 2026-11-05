@@ -163,7 +163,7 @@ Atmospheres and phase functions
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Any of :class:`~eradiate.scenes.atmosphere.MolecularAtmosphere`,
-:class:`~eradiate.scenes.atmosphere.ParticleLayer`,
+:class:`~eradiate.scenes.atmosphere.ParticleOTComponent`,
 :class:`~eradiate.scenes.atmosphere.HomogeneousAtmosphere` and
 :class:`~eradiate.scenes.atmosphere.HeterogeneousAtmosphere` (an arbitrary
 stack of the latter two) are accepted; a scene with no atmosphere is also valid.

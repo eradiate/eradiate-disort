@@ -15,7 +15,7 @@
 #     name: eradiate-disort
 # ---
 
-# %% [markdown]
+# %% [markdown] editable=true slideshow={"slide_type": ""}
 # # Nonzero altitude example
 #
 # This notebook compares the output of Eradiate's Mitsuba and DISORT backends for a computation at nonzero altitude.
@@ -58,7 +58,7 @@ ABSORPTION_DB = (
 )
 
 
-# %% tags=["remove-cell"]
+# %% tags=["remove-cell"] editable=true slideshow={"slide_type": ""}
 from eradiate_disort.testing import TestMode
 
 # Overwrite ABSORPTION_DB according to detected test mode
@@ -68,10 +68,8 @@ else:
     ABSORPTION_DB = "monotropa"
 
 
-# %% tags=["remove-cell"]
+# %% editable=true slideshow={"slide_type": ""}
 def make_exp(backend, wmin=590.0, wmax=610.0, tau_ref=0.0, altitude=0.0, spp=10_000):
-    spp_radiance = max(spp // 16, 1)
-    spp_flux = max(spp // (32 * 32 * 16), 1)
     srf = {"type": "uniform", "wmin": wmin, "wmax": wmax}
     angles = {"construct": "hplane", "azimuth": 30.0, "zeniths": [0.0]}
     measures = (
@@ -81,7 +79,7 @@ def make_exp(backend, wmin=590.0, wmax=610.0, tau_ref=0.0, altitude=0.0, spp=10_
                 "type": "mdistant",
                 **angles,
                 "srf": srf,
-                "spp": spp_radiance * 16,
+                "spp": spp,
             },
             {
                 "id": "boa_flux",
@@ -90,7 +88,7 @@ def make_exp(backend, wmin=590.0, wmax=610.0, tau_ref=0.0, altitude=0.0, spp=10_
                 "ray_offset": 1.0 * ureg.m,
                 "film_resolution": (32, 32),
                 "srf": srf,
-                "spp": spp_flux * (32 * 32 * 16),
+                "spp": spp,
             },
         ]
         if backend == "mitsuba"
@@ -102,14 +100,14 @@ def make_exp(backend, wmin=590.0, wmax=610.0, tau_ref=0.0, altitude=0.0, spp=10_
             "type": "plane_parallel",
             "toa_altitude": 120.0 * ureg.km,
             "ground_altitude": altitude * ureg.km,
-            "zgrid": np.arange(altitude, 121, 1) * ureg.km,
+            "grid": np.arange(altitude, 121, 1) * ureg.km,
             # ground_altitude and zgrid lower bound must be identical
         },
         surface={"type": "lambertian", "reflectance": 0.5},
         atmosphere={
             "type": "heterogeneous",
             "molecular_atmosphere": {"absorption_data": ABSORPTION_DB},
-            # "particle_layers": particle_layer,
+            # "particle_components": particle_layer,
         },
         illumination={
             "type": "directional",
@@ -123,7 +121,7 @@ def make_exp(backend, wmin=590.0, wmax=610.0, tau_ref=0.0, altitude=0.0, spp=10_
     return exp
 
 
-# %%
+# %% editable=true slideshow={"slide_type": ""}
 results = {}
 
 for case_id, altitude in CASES.items():
@@ -131,7 +129,7 @@ for case_id, altitude in CASES.items():
     exp_kwargs = {"altitude": altitude, "wmin": wmin, "wmax": wmax}
 
     exp_mitsuba = make_exp("mitsuba", **exp_kwargs)
-    result_mitsuba = eradiate.run(exp_mitsuba, spp=1_000)
+    result_mitsuba = eradiate.run(exp_mitsuba, spp=SPP)
 
     exp_disort = make_exp("disort", **exp_kwargs)
     backend = ed.DisortBackend()

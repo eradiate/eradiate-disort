@@ -461,7 +461,7 @@ def compute_measures_info(
     tau_btt : ndarray
         Per-layer optical depths, bottom-to-top, shape ``(n_layers,)``.
 
-    zgrid : ZGrid
+    zgrid : SpatialGrid
         Atmospheric altitude grid.
 
     Returns

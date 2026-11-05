@@ -2,6 +2,24 @@
 
 ---
 
+## v1.2.0 (5th November 2026)
+
+This release bumps the required Eradiate version to 1.3.0:
+
+- The eradiate dependency is bumped to 1.3.0.
+- Python 3.14 is officially supported.
+- The code (including examples) is adapted to the breaking API changes in
+  Eradiate v1.3.0:
+  - Rename `ParticleLayer` to `ParticleOTComponent`.
+  - Use `geometry.grid` (`SpatialGrid`) instead of `geometry.zgrid` (`ZGrid`);
+    build grids with `CartesianGrid.from_levels`.
+  - Flatten `(x, y, z)` radiative property arrays to 1D.
+  - Reject atmosphere grids that are not a single column.
+  - Use `particle_components` instead of the deprecated `particle_layers`
+    parameter.
+- In many examples, the Monte Carlo reference sample count is increased tenfold
+  to adapt to the new sample allocation policy implemented by Eradiate v1.3.0.
+
 ## v1.1.0 (7th September 2026)
 
 ### Added

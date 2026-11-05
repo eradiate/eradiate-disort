@@ -78,7 +78,7 @@ def _get_pmom_blend(
         At layers where total scattering is zero, the isotropic phase function
         is used as a fallback.
     """
-    zgrid = atmosphere.geometry.zgrid
+    zgrid = atmosphere.geometry.grid
     n_layers = zgrid.n_layers
     n = nmom + 1
     sigma_units = ucc.get("collision_coefficient")
@@ -87,7 +87,7 @@ def _get_pmom_blend(
     sigma_s_sum = np.zeros(n_layers)
 
     for component in atmosphere.components:
-        sigma_s = component.eval_sigma_s(ctx.si, zgrid).m_as(sigma_units)
+        sigma_s = np.ravel(component.eval_sigma_s(ctx.si, zgrid).m_as(sigma_units))
         pmom_1d = _get_pmom_phase(component.phase, nmom, ctx)
         pmom_sum += pmom_1d[:, np.newaxis] * sigma_s[np.newaxis, :]
         sigma_s_sum += sigma_s
@@ -131,7 +131,7 @@ def get_pmom(atmosphere, nmom: int, ctx: KernelContext) -> np.ndarray:
     ):
         return _get_pmom_blend(atmosphere, nmom, ctx)
 
-    n_layers = atmosphere.geometry.zgrid.n_layers
+    n_layers = atmosphere.geometry.grid.n_layers
     pmom_1d = _get_pmom_phase(atmosphere.phase, nmom, ctx)
     return np.tile(pmom_1d.reshape(-1, 1), (1, n_layers))
 
@@ -208,7 +208,7 @@ def _get_phase_blend(
         Phase function per layer, top-to-bottom order. Falls back to isotropic
         (1.0) where total scattering is zero.
     """
-    zgrid = atmosphere.geometry.zgrid
+    zgrid = atmosphere.geometry.grid
     n_layers = zgrid.n_layers
     nphase = len(mu_grid)
     sigma_units = ucc.get("collision_coefficient")
@@ -217,7 +217,7 @@ def _get_phase_blend(
     sigma_s_sum = np.zeros(n_layers)
 
     for comp in atmosphere.components:
-        sigma_s = comp.eval_sigma_s(ctx.si, zgrid).m_as(sigma_units)
+        sigma_s = np.ravel(comp.eval_sigma_s(ctx.si, zgrid).m_as(sigma_units))
         p_1d = _eval_phase_1d(comp.phase, mu_grid, ctx)
         phase_sum += sigma_s[:, np.newaxis] * p_1d[np.newaxis, :]
         sigma_s_sum += sigma_s
@@ -270,6 +270,6 @@ def get_phase(
     ):
         return mu_grid, _get_phase_blend(atmosphere, mu_grid, ctx)
 
-    n_layers = atmosphere.geometry.zgrid.n_layers
+    n_layers = atmosphere.geometry.grid.n_layers
     p_1d = _eval_phase_1d(atmosphere.phase, mu_grid, ctx)
     return mu_grid, np.tile(p_1d[np.newaxis, :], (n_layers, 1))

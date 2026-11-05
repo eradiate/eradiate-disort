@@ -80,11 +80,10 @@ albedo_spectrum = InterpolatedSpectrum(
 # ## Experiment definition
 
 
-# %%
-def make_exp(backend, wmin=590.0, wmax=610.0, tau_ref=0.0, spp=10_000):
+# %% editable=true slideshow={"slide_type": ""}
+def make_exp(backend, wmin=590.0, wmax=610.0, tau_ref=0.0, spp=32):
     toa = 120.0  # km
     boa = 0.0  # km
-    spp_flux = max(spp // (32 * 32 * 16), 1)
     srf = {"type": "uniform", "wmin": wmin, "wmax": wmax}
     measures = (
         [
@@ -95,7 +94,7 @@ def make_exp(backend, wmin=590.0, wmax=610.0, tau_ref=0.0, spp=10_000):
                 "ray_offset": 1.0 * ureg.m,
                 "film_resolution": (32, 32),
                 "srf": srf,
-                "spp": spp_flux,
+                "spp": spp,
             },
             {
                 "id": "boa_flux",
@@ -104,7 +103,7 @@ def make_exp(backend, wmin=590.0, wmax=610.0, tau_ref=0.0, spp=10_000):
                 "ray_offset": 1.0 * ureg.m,
                 "film_resolution": (32, 32),
                 "srf": srf,
-                "spp": spp_flux,
+                "spp": spp,
             },
         ]
         if backend == "mitsuba"
@@ -115,13 +114,13 @@ def make_exp(backend, wmin=590.0, wmax=610.0, tau_ref=0.0, spp=10_000):
         geometry={
             "type": "plane_parallel",
             "toa_altitude": 120.0 * ureg.km,
-            "zgrid": np.arange(0, 121, 1) * ureg.km,
+            "grid": np.arange(0, 121, 1) * ureg.km,
         },
         surface={"type": "lambertian", "reflectance": 0.5},
         atmosphere={
             "type": "heterogeneous",
             "molecular_atmosphere": {"absorption_data": ABSORPTION_DB},
-            # "particle_layers": particle_layer,
+            # "particle_components": particle_layer,
         },
         illumination={
             "type": "directional",
@@ -155,7 +154,7 @@ result_disort = backend.run(exp_disort)
 # %% [markdown]
 # ## Flux plotting
 
-# %%
+# %% editable=true slideshow={"slide_type": ""}
 wmin, wmax = 550, 700
 c_mitsuba = "C0"
 c_disort = "C1"

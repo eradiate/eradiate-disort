@@ -45,7 +45,7 @@ eradiate.set_mode("ckd")
 # Experiment parameters
 SZA = 30.0
 ZENITHS = np.arange(-75.0, 76.0, 1.0)
-SPP = 10_000
+SPP = 100_000
 
 # %% tags=["remove-cell"]
 # Dev-specific setup, hidden from notebook output
@@ -53,8 +53,7 @@ SPP = 10_000
 from eradiate_disort.testing import TestMode
 
 plt = TestMode.plt()
-_base_spp = TestMode.spp(tutorial=10_000, test=10_000)
-SPP = _base_spp // 16 if eradiate.get_mode().is_ckd else _base_spp
+SPP = TestMode.spp(tutorial=100_000, test=100_000)
 
 # %%
 results = {}
@@ -92,7 +91,7 @@ for case_id, kwargs in CASES.items():
         geometry={
             "type": "plane_parallel",
             "toa_altitude": 100.0 * ureg.km,
-            "zgrid": np.linspace(0, 100, 101) * ureg.km,
+            "grid": np.linspace(0, 100, 101) * ureg.km,
         },
         surface={"type": "lambertian", "reflectance": surface_reflectance},
         atmosphere={
@@ -115,7 +114,7 @@ for case_id, kwargs in CASES.items():
         geometry={
             "type": "plane_parallel",
             "toa_altitude": 100.0 * ureg.km,
-            "zgrid": np.linspace(0, 100, 101) * ureg.km,
+            "grid": np.linspace(0, 100, 101) * ureg.km,
         },
         surface={"type": "lambertian", "reflectance": surface_reflectance},
         atmosphere={

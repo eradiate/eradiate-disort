@@ -9,7 +9,8 @@ from typing import Literal
 import numpy as np
 import xarray as xr
 from eradiate.experiments import AtmosphereExperiment
-from eradiate.radprops import ArrayRadProfile, ZGrid
+from eradiate.grid import CartesianGrid
+from eradiate.radprops import ArrayRadProfile
 from eradiate.units import unit_registry as ureg
 
 _ZENITHS = np.arange(-75.0, 76.0, 1.0)
@@ -73,7 +74,7 @@ def no_atmo(sza: float = 0.0, backend: Literal["mitsuba", "disort"] = "mitsuba")
     return AtmosphereExperiment(
         geometry={
             "type": "plane_parallel",
-            "zgrid": ([0.0, 1.0] * ureg.km).to("m"),
+            "grid": ([0.0, 1.0] * ureg.km).to("m"),
             "toa_altitude": 1.0 * ureg.km,
         },
         surface={"type": "lambertian", "reflectance": 0.5},
@@ -95,7 +96,7 @@ def single_layer(
         geometry={
             "type": "plane_parallel",
             "toa_altitude": 1.0 * ureg.km,
-            "zgrid": np.linspace(0, 1, 2) * ureg.km,
+            "grid": np.linspace(0, 1, 2) * ureg.km,
         },
         surface={"type": "lambertian", "reflectance": 0.0},
         atmosphere={"type": "homogeneous", "phase": {"type": phase}},
@@ -114,7 +115,7 @@ def two_layers(
     """
     Generate an experiment for the "Two layers" test case series.
     """
-    zgrid = ZGrid(np.linspace(0, 100e3, 11) * ureg.m)
+    zgrid = CartesianGrid.from_levels(np.linspace(0, 100e3, 11) * ureg.m)
     tau_a = 0.5
     tau_s = 0.25
     sigma_a = tau_a / zgrid.total_height
@@ -159,7 +160,7 @@ def two_layers(
         geometry={
             "type": "plane_parallel",
             "toa_altitude": 100.0 * ureg.km,
-            "zgrid": zgrid,
+            "grid": zgrid,
         },
         surface={"type": "lambertian", "reflectance": surface_reflectance},
         atmosphere={
@@ -188,7 +189,7 @@ def molecular(
         geometry={
             "type": "plane_parallel",
             "toa_altitude": 100.0 * ureg.km,
-            "zgrid": np.linspace(0, 100, 101) * ureg.km,
+            "grid": np.linspace(0, 100, 101) * ureg.km,
         },
         surface={"type": "lambertian", "reflectance": surface_reflectance},
         atmosphere={
@@ -215,7 +216,7 @@ def aerosols(
         geometry={
             "type": "plane_parallel",
             "toa_altitude": 100.0 * ureg.km,
-            "zgrid": np.linspace(0, 100, 101) * ureg.km,
+            "grid": np.linspace(0, 100, 101) * ureg.km,
         },
         surface={"type": "lambertian", "reflectance": surface_reflectance},
         atmosphere={
@@ -244,7 +245,7 @@ def full_atmo(
         geometry={
             "type": "plane_parallel",
             "toa_altitude": 100.0 * ureg.km,
-            "zgrid": np.linspace(0, 100, 101) * ureg.km,
+            "grid": np.linspace(0, 100, 101) * ureg.km,
         },
         surface={"type": "lambertian", "reflectance": surface_reflectance},
         atmosphere={
@@ -253,7 +254,7 @@ def full_atmo(
                 "has_scattering": has_scattering,
                 "has_absorption": has_absorption,
             },
-            "particle_layers": {
+            "particle_components": {
                 "has_scattering": has_scattering,
                 "has_absorption": has_absorption,
                 "tau_ref": 0.2,
