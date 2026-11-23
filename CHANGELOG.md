@@ -2,7 +2,7 @@
 
 ---
 
-## v1.3.0 (unreleased)
+## v1.3.0 (24th November 2026)
 
 ### Added
 
