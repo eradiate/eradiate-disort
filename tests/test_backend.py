@@ -190,6 +190,21 @@ class TestStateConfiguration:
         expected_fbeam = exp.illumination.irradiance.eval(ctx.si).m_as("W/m^2/nm")
         np.testing.assert_allclose(state.fbeam, float(expected_fbeam))
 
+    def test_fluor_mapping(self, mode_mono):
+        # Interpolated spectrum in mW, converted to DISORT's W/m^2/sr/nm
+        backend = ed.DisortBackend(
+            fluor={
+                "type": "interpolated",
+                "wavelengths": [500.0, 600.0],
+                "values": [10.0, 30.0],
+                "quantity": "radiance",
+                "values_units": "mW/m^2/sr/nm",
+            }
+        )
+        exp = make_exp(measures={"type": "disort", "srf": _SRF})
+        state, _, _ = configure_state(backend, exp)
+        np.testing.assert_allclose(state.fluor, 0.02)
+
     @pytest.mark.parametrize(
         "method, old_ic",
         [("buras_emde", False), ("nakajima_tanaka", True)],
@@ -363,6 +378,34 @@ class TestRun:
             np.testing.assert_allclose(
                 flux[field].values, rad[field].values, rtol=1e-6, atol=1e-9
             )
+
+    def test_fluor_no_atmosphere(self, mode_mono):
+        """
+        Without atmosphere, the radiance leaving a Lambertian surface is the
+        reflected beam plus the isotropic emission.
+        """
+        albedo, sza, f0, emission = 0.3, 30.0, 1.5, 0.05
+        exp = make_exp(
+            atmosphere=None,
+            surface={"type": "lambertian", "reflectance": albedo},
+            illumination={
+                "type": "directional",
+                "zenith": sza,
+                "azimuth": 0.0,
+                "irradiance": f0,
+            },
+            measures={
+                "type": "disort",
+                "construct": "hplane",
+                "azimuth": 0.0,
+                "zeniths": [0.0, 30.0, 60.0],
+                "srf": _SRF,
+            },
+        )
+        backend = ed.DisortBackend(nstr=8, nmom=8, fluor=emission)
+        uu = backend.run(exp)["measure"].ds["uu"].values
+        expected = albedo * np.cos(np.deg2rad(sza)) * f0 / np.pi + emission
+        np.testing.assert_allclose(uu, expected, rtol=1e-6)
 
     def test_sza_equals_quadpoint(self):
         """

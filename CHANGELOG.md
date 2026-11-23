@@ -2,6 +2,14 @@
 
 ---
 
+## v1.3.0 (unreleased)
+
+### Added
+
+- `DisortBackend` now accepts a `fluor` spectrum: an isotropic radiance emitted
+  upwards at the surface (CDISORT's `fluor` parameter)
+  ([#10](https://github.com/eradiate/eradiate-disort/pull/10)).
+
 ## v1.2.0 (5th November 2026)
 
 This release bumps the required Eradiate version to 1.3.0:

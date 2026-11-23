@@ -26,7 +26,9 @@ from eradiate.scenes.atmosphere import (
 from eradiate.scenes.bsdfs import LambertianBSDF
 from eradiate.scenes.geometry import SphericalShellGeometry
 from eradiate.scenes.illumination import DirectionalIllumination
+from eradiate.scenes.spectra import Spectrum, spectrum_factory
 from eradiate.units import unit_registry as ureg
+from eradiate.validators import has_quantity
 
 from ._measurements import DisortMeasure
 from ._phase import get_phase, get_pmom
@@ -70,6 +72,15 @@ class DisortBackend:
         the actual phase function values and is more accurate for sharply peaked
         phase functions.
 
+    fluor : Spectrum or dict or float, optional
+        Isotropic radiance emitted upwards at the bottom boundary (W/m²/sr/nm or
+        compatible unit), added to the reflected radiance; maps to CDISORT's
+        ``fluor`` parameter (*e.g.* for surface fluorescence). It is a
+        prescribed spectrum, independent of the illumination, the surface
+        reflectance and any temperature (this is not thermal emission). Can be
+        initialized with a dictionary processed by Eradiate's spectrum factory.
+        If unset, no such radiance is emitted.
+
     See Also
     --------
     nanodisort.DisortState
@@ -83,6 +94,14 @@ class DisortBackend:
         repr=False,
     )
     verbose: bool = attrs.field(default=False, repr=False)
+    fluor: Spectrum | None = attrs.field(
+        default=None,
+        converter=attrs.converters.optional(spectrum_factory.converter("radiance")),
+        validator=attrs.validators.optional(
+            [attrs.validators.instance_of(Spectrum), has_quantity("radiance")]
+        ),
+        repr=False,
+    )
     _state: nd.DisortState = attrs.field(factory=nd.DisortState, repr=False)
     _results: dict[Hashable, dict] = attrs.field(factory=dict, repr=False)
     # Populated at the end of process(); consumed by postprocess()
@@ -388,7 +407,11 @@ class DisortBackend:
         ds.phi0 = run_ctx["ill_phi"]
         ds.albedo = albedo
         ds.fisot = 0.0
-        ds.fluor = 0.0
+        ds.fluor = (
+            0.0
+            if self.fluor is None
+            else float(self.fluor.eval(ctx.si).m_as("W/m^2/sr/nm"))
+        )
 
     def _solve(self) -> None:
         """Run the DISORT solver."""
