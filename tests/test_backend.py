@@ -115,12 +115,12 @@ class TestStateConfiguration:
         )
         state, _, _ = configure_state(ed.DisortBackend(), exp)
         assert state.spher is True
-        assert state.radius == pytest.approx(exp.geometry.planet_radius.m_as("km"))
+        np.testing.assert_allclose(state.radius, exp.geometry.planet_radius.m_as("km"))
 
         # Level heights above the ground, top-to-bottom, in the unit of radius
         zd = np.array(state.zd)
         assert len(zd) == 11
-        assert zd[0] == pytest.approx(100.0)
+        np.testing.assert_allclose(zd[0], 100.0)
         assert zd[-1] == 0.0  # nanodisort checks this exactly
         assert np.all(np.diff(zd) < 0.0)
 
@@ -135,11 +135,11 @@ class TestStateConfiguration:
             )
         )
         state, _, _ = configure_state(ed.DisortBackend(), exp)
-        assert state.radius == pytest.approx(
-            exp.geometry.planet_radius.m_as("km") + 1.0
+        np.testing.assert_allclose(
+            state.radius, exp.geometry.planet_radius.m_as("km") + 1.0
         )
         zd = np.array(state.zd)
-        assert zd[0] == pytest.approx(10.0)
+        np.testing.assert_allclose(zd[0], 10.0)
         assert zd[-1] == 0.0
 
     def test_verbose_controls_quiet(self, mode_mono):
@@ -178,17 +178,17 @@ class TestStateConfiguration:
             illumination={"type": "directional", "zenith": 40.0, "azimuth": 160.0}
         )
         state, _, _ = configure_state(ed.DisortBackend(), exp)
-        assert state.umu0 == pytest.approx(np.cos(np.deg2rad(40.0)))
-        assert state.phi0 == pytest.approx((160.0 + 180.0) % 360.0)
+        np.testing.assert_allclose(state.umu0, np.cos(np.deg2rad(40.0)))
+        np.testing.assert_allclose(state.phi0, (160.0 + 180.0) % 360.0)
 
     def test_surface_and_source_mapping(self, mode_mono):
         exp = make_exp(surface={"type": "lambertian", "reflectance": 0.42})
         state, _, ctx = configure_state(ed.DisortBackend(), exp)
-        assert state.albedo == pytest.approx(0.42)
+        np.testing.assert_allclose(state.albedo, 0.42)
         assert state.fisot == 0.0
         assert state.fluor == 0.0
         expected_fbeam = exp.illumination.irradiance.eval(ctx.si).m_as("W/m^2/nm")
-        assert state.fbeam == pytest.approx(float(expected_fbeam))
+        np.testing.assert_allclose(state.fbeam, float(expected_fbeam))
 
     @pytest.mark.parametrize(
         "method, old_ic",
@@ -210,7 +210,7 @@ class TestStateConfiguration:
         state, _, _ = configure_state(ed.DisortBackend(), make_exp())
         utau = np.array(state.utau)
         assert utau.shape == (2,)
-        assert utau[0] == pytest.approx(0.0)  # TOA
+        np.testing.assert_allclose(utau[0], 0.0)  # TOA
         assert utau[-1] > 0.0  # BOA: total optical depth
         assert state.ntau == 2
 
@@ -221,7 +221,7 @@ class TestStateConfiguration:
         )
         state, _, _ = configure_state(ed.DisortBackend(), exp)
         assert state.ntau == 3
-        assert np.array(state.utau)[0] == pytest.approx(0.0)
+        np.testing.assert_allclose(np.array(state.utau)[0], 0.0)
 
     def test_utau_explicit(self, mode_mono):
         exp = make_exp(measures={"type": "disort", "utau": [0.0, 0.02, 0.05]})
