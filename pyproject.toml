@@ -88,6 +88,15 @@ eradiate = { extras = ["kernel", "recommended"] }
 # environment always uses whatever the ext/nanodisort submodule is pinned to.
 dependency-overrides = { nanodisort = { path = "ext/nanodisort", editable = true } }
 
+[tool.pixi.feature.nanodisort-local.pypi-options]
+# shortcut: CI builds nanodisort from the ext/nanodisort submodule because no
+# release ships Windows wheels yet; drop this feature (and relock) once one does.
+dependency-overrides = { nanodisort = { path = "ext/nanodisort" } }
+
+[tool.pixi.feature.nanodisort-local.target.unix.activation]
+# Same wheel tag fix as the dev feature (see the script); no-op off macOS
+scripts = ["scripts/set-macos-deployment-target.sh"]
+
 [tool.pixi.feature.py310.dependencies]
 python = "3.10.*"
 
@@ -108,11 +117,11 @@ python = "3.14.*"
 default = { features = ["py310", "test", "docs", "dev"], solve-group = "default" }
 
 # CI environments
-ghapy310 = { features = ["py310", "kernel", "test"] }
-ghapy311 = { features = ["py311", "kernel", "test"] }
-ghapy312 = { features = ["py312", "kernel", "test"] }
-ghapy313 = { features = ["py313", "kernel", "test"] }
-ghapy314 = { features = ["py314", "kernel", "test"] }
+ghapy310 = { features = ["py310", "kernel", "test", "nanodisort-local"] }
+ghapy311 = { features = ["py311", "kernel", "test", "nanodisort-local"] }
+ghapy312 = { features = ["py312", "kernel", "test", "nanodisort-local"] }
+ghapy313 = { features = ["py313", "kernel", "test", "nanodisort-local"] }
+ghapy314 = { features = ["py314", "kernel", "test", "nanodisort-local"] }
 
 [tool.pixi.feature.test.tasks]
 # Wrap pytest with appropriate environment tuning to enforce a non-interactive
