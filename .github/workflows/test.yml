@@ -22,7 +22,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest]
+        os: [ubuntu-latest, macos-latest, windows-latest]
         environment: [ghapy310, ghapy311, ghapy312, ghapy313, ghapy314]
 
     steps:
@@ -37,6 +37,24 @@ jobs:
           pixi-version: v0.70.0
           environments: ${{ matrix.environment }}
           cache: true
+
+      # Eradiate installs assets as symlinks, which requires Developer Mode on Windows
+      - name: Enable Developer Mode (Windows)
+        if: runner.os == 'Windows'
+        run: reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\AppModelUnlock" /t REG_DWORD /f /v AllowDevelopmentWithoutDevLicense /d 1
+
+      # Dr.Jit crashes at process exit with the runner's own LLVM; use the
+      # version Mitsuba's Windows wheels are built and tested with
+      - name: Install LLVM 18.1.8 (Windows)
+        if: runner.os == 'Windows'
+        uses: KyleMayes/install-llvm-action@v2
+        with:
+          version: 18.1.8
+
+      - name: Point Dr.Jit to LLVM 18.1.8 (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: echo "DRJIT_LIBLLVM_PATH=$env:LLVM_PATH\bin\LLVM-C.dll" >> $env:GITHUB_ENV
 
       - name: Install Eradiate assets
         run: pixi run -e ${{ matrix.environment }} eradiate data install core mycena
